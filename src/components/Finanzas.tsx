@@ -239,8 +239,16 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     setSelectedDiscountForPayment(discount);
     const nextPaymentNumber = (discount.loanPayments?.length || 0) + 1;
     
-    // Usar cuota personalizada si existe, sino calcular
-    const suggestedAmount = customInstallments[nextPaymentNumber] || calculateInstallment(discount, nextPaymentNumber);
+    // Determinar el monto sugerido
+    let suggestedAmount = 0;
+    
+    if (discount.loanType && discount.loanAmount && discount.totalMonths) {
+      // Es un préstamo, usar cálculo de cuota
+      suggestedAmount = customInstallments[nextPaymentNumber] || calculateInstallment(discount, nextPaymentNumber);
+    } else {
+      // No es un préstamo, usar el monto del descuento
+      suggestedAmount = discount.amount;
+    }
     
     setLoanPaymentAmount(suggestedAmount.toString());
     setLoanPaymentDate(new Date().toISOString().split('T')[0]);
@@ -287,21 +295,26 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   };
 
   const shareLoanPaymentWhatsApp = async (payment: LoanPayment, discount: Discount) => {
+    const isLoan = discount.totalMonths && discount.totalMonths > 0;
+    
     const receiptData = {
       title: 'Control Biométrico',
-      subtitle: 'Pago de Préstamo',
+      subtitle: isLoan ? 'Pago de Préstamo' : 'Pago de Descuento',
       color: '#3b82f6',
       fields: [
-        { label: 'Préstamo:', value: discount.name },
-        { label: 'Cuota #:', value: payment.paymentNumber.toString(), highlight: true },
+        { label: isLoan ? 'Préstamo:' : 'Descuento:', value: discount.name },
+        { label: 'Pago #:', value: payment.paymentNumber.toString(), highlight: true },
         { label: 'Monto:', value: formatCurrency(payment.amount), highlight: true },
         { label: 'Fecha:', value: new Date(payment.date).toLocaleDateString('es-EC') },
-        { label: 'Progreso:', value: `${discount.paymentsMade}/${discount.totalMonths} (${(((discount.paymentsMade || 0) / (discount.totalMonths || 1)) * 100).toFixed(1)}%)` },
+        ...(isLoan ? [{ 
+          label: 'Progreso:', 
+          value: `${discount.paymentsMade}/${discount.totalMonths} (${(((discount.paymentsMade || 0) / (discount.totalMonths || 1)) * 100).toFixed(1)}%)` 
+        }] : []),
       ],
       photo: payment.photo,
       footer: 'by Hugo León',
     };
-    await shareAsImageWhatsApp(receiptData, `pago-prestamo-${discount.name}-${payment.paymentNumber}`);
+    await shareAsImageWhatsApp(receiptData, `pago-${discount.name}-${payment.paymentNumber}`);
   };
 
   // Check for 25% loan alerts
@@ -859,9 +872,56 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                       )}
                     </div>
                   )}
+                  
+                  {/* Lista de pagos individuales para todos los descuentos */}
+                  {discount.loanPayments && discount.loanPayments.length > 0 && !discount.loanType && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-slate-400 font-medium">Pagos registrados:</p>
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {discount.loanPayments.map((payment) => (
+                          <div key={payment.id} className="flex items-center justify-between bg-slate-700/30 rounded px-2 py-1 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="text-blue-400 font-bold">#{payment.paymentNumber}</span>
+                              <span className="text-white">{formatCurrency(payment.amount)}</span>
+                              <span className="text-slate-500">{new Date(payment.date).toLocaleDateString('es-EC')}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {payment.photo && (
+                                <span className="text-green-400" title="Con foto">📷</span>
+                              )}
+                              <button
+                                onClick={() => shareLoanPaymentWhatsApp(payment, discount)}
+                                className="text-green-400 hover:text-green-300"
+                                title="Compartir"
+                              >
+                                <Share2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLoanPayment(discount.id, payment.id)}
+                                className="text-red-400 hover:text-red-300"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => openLoanPaymentModal(discount)} 
+                  className="text-emerald-400 hover:text-emerald-300"
+                  title="Registrar Pago"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
                 <button onClick={() => startEditDiscount(discount)} className="text-blue-400 hover:text-blue-300"><Edit2 size={14} /></button>
                 <button onClick={() => store.removeDiscount(discount.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
                 <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
@@ -889,7 +949,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
               className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Registrar Pago de Préstamo</h3>
+                <h3 className="text-lg font-semibold">Registrar Pago</h3>
                 <button onClick={() => setShowLoanPaymentModal(false)} className="text-slate-400 hover:text-white">
                   <X size={20} />
                 </button>
@@ -898,7 +958,10 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
               <div className="bg-slate-700/30 rounded-lg p-3 mb-4">
                 <p className="text-sm text-white font-medium">{selectedDiscountForPayment.name}</p>
                 <p className="text-xs text-slate-400">
-                  Pagos realizados: {selectedDiscountForPayment.paymentsMade || 0}/{selectedDiscountForPayment.totalMonths}
+                  {selectedDiscountForPayment.totalMonths 
+                    ? `Pagos realizados: ${selectedDiscountForPayment.paymentsMade || 0}/${selectedDiscountForPayment.totalMonths}`
+                    : `Monto regular: ${formatCurrency(selectedDiscountForPayment.amount)}`
+                  }
                 </p>
                 <p className="text-xs text-blue-400 mt-1">
                   Siguiente pago: #{(selectedDiscountForPayment.loanPayments?.length || 0) + 1}

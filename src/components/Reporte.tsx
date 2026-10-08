@@ -43,18 +43,24 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
   });
 
   // Monthly summary (based on selected weeks for payment)
-  const monthlyHours = store.data.timeEntries
-    .filter(e => {
-      const d = parseISO(e.date);
-      return d >= monthStart && d <= monthEnd;
-    })
-    .reduce((sum, e) => sum + e.hours, 0);
-
+  // Si hay semanas seleccionadas, calcular solo esas semanas
+  // Si no hay selección, calcular todo el mes
+  const monthlyHours = selectedWeeks.length > 0
+    ? weeks.reduce((sum, w) => {
+        const rule = applyRule45h(store.data.timeEntries, store.data.holidays, w);
+        return sum + rule.weekdayHours + rule.totalExtra;
+      }, 0)
+    : store.data.timeEntries
+        .filter(e => {
+          const d = parseISO(e.date);
+          return d >= monthStart && d <= monthEnd;
+        })
+        .reduce((sum, e) => sum + e.hours, 0);
+  
   const monthlyOvertime = weeks.reduce((sum, w) => {
     const rule = applyRule45h(store.data.timeEntries, store.data.holidays, w);
     return sum + rule.totalExtra;
   }, 0);
-
   // Quarterly data (3 months)
   const quarterlyData = Array.from({ length: 3 }, (_, i) => {
     const month = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 2 + i, 1);
