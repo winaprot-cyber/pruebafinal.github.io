@@ -134,6 +134,8 @@ export interface AppData {
   decimoEntries: DecimoEntry[];
   salaryConfig: SalaryConfig;
   paymentPeriods: PaymentPeriod[];
+  selectedWeeks: number[]; // Semanas seleccionadas para pago
+  selectedYear: number; // Año seleccionado
 }
 
 const defaultData: AppData = {
@@ -155,6 +157,8 @@ const defaultData: AppData = {
     overtimeRate100: 0,
   },
   paymentPeriods: [],
+  selectedWeeks: [],
+  selectedYear: new Date().getFullYear(),
 };
 
 function loadData(): AppData {
@@ -349,6 +353,14 @@ export function useStore() {
     setData(prev => ({ ...prev, salaryConfig: { ...prev.salaryConfig, ...config } }));
   }, []);
 
+  const updateSelectedWeeks = useCallback((weeks: number[]) => {
+    setData(prev => ({ ...prev, selectedWeeks: weeks }));
+  }, []);
+
+  const updateSelectedYear = useCallback((year: number) => {
+    setData(prev => ({ ...prev, selectedYear: year }));
+  }, []);
+
   const exportData = useCallback(() => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -395,6 +407,8 @@ export function useStore() {
     removeDebt,
     addDecimoEntry,
     updateSalaryConfig,
+    updateSelectedWeeks,
+    updateSelectedYear,
     exportData,
     importData,
   };

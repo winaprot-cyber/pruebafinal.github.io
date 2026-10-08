@@ -601,6 +601,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     >
                       <option value="">Sin préstamo</option>
                       <option value="quirografario">Préstamo Quirografario</option>
+                      <option value="empresarial">Préstamo Empresarial</option>
                       <option value="otro">Otro</option>
                     </select>
                   </div>
@@ -704,6 +705,63 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     )}
                   </div>
                 )}
+
+                {/* Configuración de Préstamo Empresarial */}
+                {discountLoanType === 'empresarial' && discountTotalMonths && (
+                  <div className="space-y-3 bg-slate-700/20 rounded-lg p-3">
+                    <h4 className="text-sm font-medium text-purple-400">Configuración del Préstamo Empresarial</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Monto Total del Préstamo ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Ej: 500"
+                          value={discountLoanAmount}
+                          onChange={(e) => setDiscountLoanAmount(e.target.value)}
+                          className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Pago Mensual Fijo ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Ej: 50"
+                          value={discountAmount}
+                          onChange={(e) => setDiscountAmount(e.target.value)}
+                          className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {discountLoanAmount && discountAmount && discountTotalMonths && (
+                      <div className="bg-slate-800/50 rounded-lg p-3">
+                        <p className="text-xs text-slate-400 mb-2">Resumen:</p>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Monto del préstamo:</span>
+                            <span className="text-white font-medium">{formatCurrency(parseFloat(discountLoanAmount))}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Pago mensual:</span>
+                            <span className="text-purple-400 font-medium">{formatCurrency(parseFloat(discountAmount))}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Meses:</span>
+                            <span className="text-white font-medium">{discountTotalMonths}</span>
+                          </div>
+                          <div className="flex justify-between border-t border-slate-700 pt-1 mt-1">
+                            <span className="text-slate-400">Total a pagar:</span>
+                            <span className="text-emerald-400 font-bold">{formatCurrency(parseFloat(discountAmount) * parseInt(discountTotalMonths))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <button onClick={handleSaveDiscount} className="bg-red-500/20 border border-red-500/30 px-3 py-1 rounded text-red-300 text-sm">
                     {editingDiscount ? 'Actualizar' : 'Guardar'}

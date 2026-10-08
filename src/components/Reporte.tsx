@@ -17,7 +17,16 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
   const selectedMonth = addWeeks(startOfMonth(today), monthOffset * 4);
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
-  const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+  const allWeeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+
+  // Filtrar semanas basadas en las seleccionadas en Pagos
+  const selectedWeeks = store.data.selectedWeeks;
+  const weeks = selectedWeeks.length > 0
+    ? allWeeks.filter((weekStart, i) => {
+        const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
+        return selectedWeeks.includes(weekNumber);
+      })
+    : allWeeks;
 
   // Weekly data
   const weeklyData = weeks.map((weekStart, i) => {
@@ -104,20 +113,27 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
       </div>
 
       {/* Period selector */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {(['weekly', 'monthly', 'quarterly'] as Period[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-              period === p
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                : 'bg-slate-700/30 text-slate-400 hover:text-white'
-            }`}
-          >
-            {p === 'weekly' ? 'Semanal' : p === 'monthly' ? 'Mensual' : 'Trimestral'}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {(['weekly', 'monthly', 'quarterly'] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                period === p
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  : 'bg-slate-700/30 text-slate-400 hover:text-white'
+              }`}
+            >
+              {p === 'weekly' ? 'Semanal' : p === 'monthly' ? 'Mensual' : 'Trimestral'}
+            </button>
+          ))}
+        </div>
+        {selectedWeeks.length > 0 && (
+          <div className="text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-1.5">
+            Mostrando {selectedWeeks.length} semana(s) seleccionada(s) en Pagos
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}

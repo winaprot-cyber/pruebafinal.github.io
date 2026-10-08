@@ -14,8 +14,10 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   const [overtimeRate50, setOvertimeRate50] = useState(store.data.salaryConfig.overtimeRate50.toString());
   const [overtimeRate100, setOvertimeRate100] = useState(store.data.salaryConfig.overtimeRate100.toString());
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [selectedWeeks, setSelectedWeeks] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
+  // Usar el estado global del store
+  const selectedWeeks = store.data.selectedWeeks;
+  const selectedYear = store.data.selectedYear;
 
   const today = new Date();
   const yearStart = startOfYear(new Date(selectedYear, 0, 1));
@@ -119,17 +121,18 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   };
 
   const toggleWeek = (index: number) => {
-    setSelectedWeeks(prev => 
-      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
-    );
+    const newWeeks = selectedWeeks.includes(index)
+      ? selectedWeeks.filter(i => i !== index)
+      : [...selectedWeeks, index];
+    store.updateSelectedWeeks(newWeeks);
   };
 
   const selectAllWeeks = () => {
-    setSelectedWeeks(weeksWithData.map(w => w.index));
+    store.updateSelectedWeeks(weeksWithData.map(w => w.index));
   };
 
   const clearWeeks = () => {
-    setSelectedWeeks([]);
+    store.updateSelectedWeeks([]);
   };
 
   return (
@@ -143,8 +146,8 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
           <select
             value={selectedYear}
             onChange={(e) => {
-              setSelectedYear(parseInt(e.target.value));
-              setSelectedWeeks([]);
+              store.updateSelectedYear(parseInt(e.target.value));
+              store.updateSelectedWeeks([]);
             }}
             className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
           >
