@@ -305,7 +305,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
         <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
           <DollarSign size={20} className="text-emerald-400" />
-          Proyección - Año {selectedYear}
+          Proyección - {format(new Date(), 'MMMM yyyy', { locale: es })}
         </h3>
 
         {/* Week Selection Dropdown */}

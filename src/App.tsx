@@ -10,6 +10,7 @@ import Finanzas from './components/Finanzas';
 import Balance from './components/Balance';
 import Decimo from './components/Decimo';
 import FloatingPaymentsButton from './components/FloatingPaymentsButton';
+import AlarmButton from './components/AlarmButton';
 
 const tabs = [
   { id: 'inicio', label: 'Inicio', icon: Home },
@@ -144,6 +145,9 @@ export default function App() {
 
       {/* Floating Payments Button */}
       <FloatingPaymentsButton store={store} />
+
+      {/* Alarm Button */}
+      <AlarmButton store={store} />
     </div>
   );
 }

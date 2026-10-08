@@ -21,11 +21,16 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
 
   // Filtrar semanas basadas en las seleccionadas en Pagos
   const selectedWeeks = store.data.selectedWeeks;
+  const selectedYear = store.data.selectedYear;
+  
+  // Obtener todas las semanas del año seleccionado
+  const yearStart = new Date(selectedYear, 0, 1);
+  const yearEnd = new Date(selectedYear, 11, 31);
+  const allWeeksOfYear = eachWeekOfInterval({ start: yearStart, end: yearEnd }, { weekStartsOn: 1 });
+  
+  // Filtrar por las semanas seleccionadas (usando índices)
   const weeks = selectedWeeks.length > 0
-    ? allWeeks.filter((weekStart, i) => {
-        const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
-        return selectedWeeks.includes(weekNumber);
-      })
+    ? selectedWeeks.map(index => allWeeksOfYear[index]).filter(Boolean)
     : allWeeks;
 
   // Weekly data

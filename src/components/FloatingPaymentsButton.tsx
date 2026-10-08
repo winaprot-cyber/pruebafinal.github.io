@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, X, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { CreditCard, X, ChevronDown, ChevronUp, Check, DollarSign } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
 
@@ -14,6 +14,13 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
   const activeDebts = store.data.debts.filter(d => d.totalAmount - d.paidAmount > 0);
   const totalDebtRemaining = activeDebts.reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
   const monthlyDebtPayments = activeDebts.reduce((sum, d) => sum + d.monthlyPayment, 0);
+
+  // Gastos mensuales
+  const monthlyExpenses = store.data.expenses.filter(e => e.frequency === 'monthly' || e.frequency === 'weekly');
+  const totalMonthlyExpenses = monthlyExpenses.reduce((sum, e) => {
+    if (e.frequency === 'weekly') return sum + e.amount * 4;
+    return sum + e.amount;
+  }, 0);
 
   const handleQuickPayment = (debtId: string, amount: number) => {
     const debt = store.data.debts.find(d => d.id === debtId);
@@ -30,7 +37,8 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
     });
   };
 
-  if (activeDebts.length === 0) return null;
+  const totalItems = activeDebts.length + monthlyExpenses.length;
+  if (totalItems === 0) return null;
 
   return (
     <>
@@ -46,7 +54,7 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
         <CreditCard size={24} />
         <span className="font-bold hidden sm:inline">Pagos</span>
         <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs font-bold">
-          {activeDebts.length}
+          {totalItems}
         </span>
       </motion.button>
 
@@ -72,13 +80,13 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <CreditCard size={20} className="text-blue-400" />
-                    Pagos Activos
+                    Pagos Pendientes
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Total pendiente: <span className="text-red-400 font-bold">{formatCurrency(totalDebtRemaining)}</span>
+                    Deudas: <span className="text-red-400 font-bold">{formatCurrency(totalDebtRemaining)}</span>
                   </p>
                   <p className="text-xs text-slate-400">
-                    Pago mensual: <span className="text-yellow-400 font-bold">{formatCurrency(monthlyDebtPayments)}</span>
+                    Gastos mensuales: <span className="text-orange-400 font-bold">{formatCurrency(totalMonthlyExpenses)}</span>
                   </p>
                 </div>
                 <button
@@ -91,56 +99,90 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {activeDebts.map(debt => (
-                  <div key={debt.id} className="bg-slate-700/30 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{debt.name}</p>
-                        <p className="text-xs text-slate-400">{debt.type}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-red-400">
-                          {formatCurrency(debt.totalAmount - debt.paidAmount)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {debt.paymentsMade || 0}/{debt.totalPayments || '?'} pagos
-                        </p>
-                      </div>
-                    </div>
+                {/* Deudas */}
+                {activeDebts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
+                      <CreditCard size={16} />
+                      Deudas ({activeDebts.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {activeDebts.map(debt => (
+                        <div key={debt.id} className="bg-slate-700/30 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-white">{debt.name}</p>
+                              <p className="text-xs text-slate-400">{debt.type}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-red-400">
+                                {formatCurrency(debt.totalAmount - debt.paidAmount)}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {debt.paymentsMade || 0}/{debt.totalPayments || '?'} pagos
+                              </p>
+                            </div>
+                          </div>
 
-                    {/* Progress Bar */}
-                    <div className="mb-3">
-                      <div className="flex justify-between text-xs text-slate-400 mb-1">
-                        <span>{debt.progress.toFixed(0)}% pagado</span>
-                        <span>{formatCurrency(debt.paidAmount)} / {formatCurrency(debt.totalAmount)}</span>
-                      </div>
-                      <div className="w-full bg-slate-600 rounded-full h-2">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${debt.progress}%` }}
-                          className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full"
-                        />
-                      </div>
-                    </div>
+                          {/* Progress Bar */}
+                          <div className="mb-3">
+                            <div className="flex justify-between text-xs text-slate-400 mb-1">
+                              <span>{debt.progress.toFixed(0)}% pagado</span>
+                              <span>{formatCurrency(debt.paidAmount)} / {formatCurrency(debt.totalAmount)}</span>
+                            </div>
+                            <div className="w-full bg-slate-600 rounded-full h-2">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${debt.progress}%` }}
+                                className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full"
+                              />
+                            </div>
+                          </div>
 
-                    {/* Quick Payment Buttons */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleQuickPayment(debt.id, debt.monthlyPayment)}
-                        className="flex-1 bg-blue-500/20 border border-blue-500/30 px-3 py-2 rounded-lg text-blue-300 text-xs hover:bg-blue-500/30 transition"
-                      >
-                        Abono: {formatCurrency(debt.monthlyPayment)}
-                      </button>
-                      <button
-                        onClick={() => handleQuickPayment(debt.id, debt.totalAmount - debt.paidAmount)}
-                        className="flex-1 bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg text-emerald-300 text-xs hover:bg-emerald-500/30 transition"
-                      >
-                        <Check size={12} className="inline mr-1" />
-                        Pagar Total
-                      </button>
+                          {/* Quick Payment Buttons */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleQuickPayment(debt.id, debt.monthlyPayment)}
+                              className="flex-1 bg-blue-500/20 border border-blue-500/30 px-3 py-2 rounded-lg text-blue-300 text-xs hover:bg-blue-500/30 transition"
+                            >
+                              Abono: {formatCurrency(debt.monthlyPayment)}
+                            </button>
+                            <button
+                              onClick={() => handleQuickPayment(debt.id, debt.totalAmount - debt.paidAmount)}
+                              className="flex-1 bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg text-emerald-300 text-xs hover:bg-emerald-500/30 transition"
+                            >
+                              <Check size={12} className="inline mr-1" />
+                              Pagar Total
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Gastos Mensuales */}
+                {monthlyExpenses.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-orange-400 mb-2 flex items-center gap-2">
+                      <DollarSign size={16} />
+                      Gastos Mensuales ({monthlyExpenses.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {monthlyExpenses.map(expense => (
+                        <div key={expense.id} className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-white">{expense.name}</p>
+                            <p className="text-xs text-slate-400">{expense.category} • {expense.frequency}</p>
+                          </div>
+                          <p className="text-sm font-bold text-orange-400">
+                            {formatCurrency(expense.amount)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
