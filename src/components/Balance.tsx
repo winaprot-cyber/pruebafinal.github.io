@@ -105,10 +105,13 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
 
   const handleSaveExpense = () => {
     if (!expenseName) return;
+    const amount = parseFloat(expenseAmount) || 0;
     const expense: Expense = {
       id: editingExpense || generateId(),
       name: expenseName,
-      amount: parseFloat(expenseAmount) || 0,
+      amount: amount,
+      originalAmount: editingExpense ? (store.data.expenses.find(e => e.id === editingExpense)?.originalAmount || amount) : amount,
+      paidAmount: editingExpense ? (store.data.expenses.find(e => e.id === editingExpense)?.paidAmount || 0) : 0,
       category: expenseCategory,
       frequency: expenseFrequency,
     };
@@ -437,22 +440,70 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
           )}
         </AnimatePresence>
         <div className="space-y-2">
-          {store.data.expenses.map(exp => (
-            <div key={exp.id}>
-              <div className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-2">
-                <div>
-                  <p className="text-sm text-white">{categoryLabels[exp.category] || exp.name}</p>
-                  <p className="text-xs text-slate-400">{formatCurrency(exp.amount)} • {exp.frequency}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => { setSelectedExpense(exp); setShowExpensePaymentModal(true); }} className="bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 text-xs">Pagar</button>
-                  <button onClick={() => startEditExpense(exp)} className="text-blue-400 hover:text-blue-300"><Edit2 size={14} /></button>
-                  <button onClick={() => store.removeExpense(exp.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                  <button onClick={() => shareWhatsApp('Gasto', exp)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+          {store.data.expenses.map(exp => {
+            const originalAmount = exp.originalAmount || exp.amount;
+            const paidAmount = exp.paidAmount || 0;
+            const remainingAmount = exp.amount;
+            const paidPercentage = originalAmount > 0 ? (paidAmount / originalAmount) * 100 : 0;
+            const isFullyPaid = remainingAmount <= 0;
+            
+            return (
+              <div key={exp.id}>
+                <div className="bg-slate-700/30 rounded-lg px-3 md:px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1">
+                      <p className="text-sm text-white">{categoryLabels[exp.category] || exp.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {isFullyPaid ? (
+                          <span className="text-emerald-400 font-semibold">✓ Pagado completamente</span>
+                        ) : (
+                          <>
+                            Restante: {formatCurrency(remainingAmount)} • {exp.frequency}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {!isFullyPaid && (
+                        <button onClick={() => { setSelectedExpense(exp); setShowExpensePaymentModal(true); }} className="bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 text-xs">Pagar</button>
+                      )}
+                      <button onClick={() => startEditExpense(exp)} className="text-blue-400 hover:text-blue-300"><Edit2 size={14} /></button>
+                      <button onClick={() => store.removeExpense(exp.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
+                      <button onClick={() => shareWhatsApp('Gasto', exp)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                    </div>
+                  </div>
+                  
+                  {/* Barra de progreso de pago */}
+                  {originalAmount > 0 && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Pagado: {formatCurrency(paidAmount)}</span>
+                        <span className={paidPercentage === 100 ? 'text-emerald-400 font-semibold' : ''}>
+                          {paidPercentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-600 rounded-full h-2">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${paidPercentage}%` }}
+                          className={`h-2 rounded-full transition-all ${
+                            paidPercentage === 100 
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
+                              : 'bg-gradient-to-r from-orange-500 to-orange-400'
+                          }`}
+                        />
+                      </div>
+                      {paidAmount > 0 && !isFullyPaid && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Original: {formatCurrency(originalAmount)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {store.data.expenses.length === 0 && <p className="text-slate-500 text-sm text-center py-2">Sin gastos registrados</p>}
         </div>
       </div>

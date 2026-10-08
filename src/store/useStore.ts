@@ -76,6 +76,8 @@ export interface Expense {
   id: string;
   name: string;
   amount: number;
+  originalAmount?: number; // Monto original antes de abonos
+  paidAmount?: number; // Monto pagado hasta ahora
   category: string;
   frequency: 'monthly' | 'weekly' | 'annual' | 'once';
 }

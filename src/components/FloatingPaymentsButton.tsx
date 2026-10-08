@@ -50,16 +50,35 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
     const expense = store.data.expenses.find(e => e.id === expenseId);
     if (!expense) return;
 
+    const originalAmount = expense.originalAmount || expense.amount;
+    const currentPaid = expense.paidAmount || 0;
+
     if (isFull) {
-      // Pago total - eliminar el gasto
-      store.removeExpense(expenseId);
+      // Pago total - marcar como completamente pagado
+      const newPaid = originalAmount;
+      store.updateExpense(expenseId, { 
+        amount: 0,
+        paidAmount: newPaid,
+        originalAmount: originalAmount
+      });
     } else {
-      // Abono parcial - reducir el monto
+      // Abono parcial - actualizar paidAmount y reducir amount
+      const newPaid = currentPaid + amount;
       const newAmount = expense.amount - amount;
+      
       if (newAmount <= 0) {
-        store.removeExpense(expenseId);
+        // Si el abono cubre todo o más
+        store.updateExpense(expenseId, { 
+          amount: 0,
+          paidAmount: originalAmount,
+          originalAmount: originalAmount
+        });
       } else {
-        store.updateExpense(expenseId, { amount: newAmount });
+        store.updateExpense(expenseId, { 
+          amount: newAmount,
+          paidAmount: newPaid,
+          originalAmount: originalAmount
+        });
       }
     }
     setShowExpensePayment(false);
