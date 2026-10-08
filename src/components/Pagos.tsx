@@ -120,6 +120,33 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
     setShowConfig(false);
   };
 
+  // Calcular cuota según tipo de amortización
+  const calculateInstallment = (discount: any, paymentNumber: number): number => {
+    if (!discount.loanAmount || !discount.totalMonths || !discount.interestRate) {
+      return discount.monthlyPaymentAmount || discount.amount || 0;
+    }
+
+    const principal = discount.loanAmount;
+    const months = discount.totalMonths;
+    const annualRate = discount.interestRate / 100;
+    const monthlyRate = annualRate / 12;
+
+    if (discount.amortizationType === 'alemana') {
+      // Amortización Alemana: cuota de capital constante + intereses decrecientes
+      const capitalInstallment = principal / months;
+      const remainingPrincipal = principal - (capitalInstallment * (paymentNumber - 1));
+      const interest = remainingPrincipal * monthlyRate;
+      return Math.round((capitalInstallment + interest) * 100) / 100;
+    } else {
+      // Amortización Francesa: cuota fija
+      if (monthlyRate === 0) {
+        return Math.round((principal / months) * 100) / 100;
+      }
+      const installment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+      return Math.round(installment * 100) / 100;
+    }
+  };
+
   const toggleWeek = (index: number) => {
     const newWeeks = selectedWeeks.includes(index)
       ? selectedWeeks.filter(i => i !== index)
@@ -510,14 +537,35 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
           <div>
             <h4 className="text-sm font-medium text-red-400 mb-2">Descuentos Activos</h4>
             <div className="space-y-1">
-              {store.data.discounts.filter(d => d.active && !d.isSpecial).map(d => (
-                <div key={d.id} className="flex justify-between text-xs bg-red-500/10 rounded px-3 py-1">
-                  <span className="text-slate-300">{d.name}</span>
-                  <span className="text-red-400">
-                    {d.basedOnSalary ? `${d.percentage}% = ${formatCurrency(baseIngreso * d.percentage / 100)}` : formatCurrency(d.amount)}
-                  </span>
-                </div>
-              ))}
+              {store.data.discounts.filter(d => d.active && !d.isSpecial).map(d => {
+                // Calcular el valor a descontar
+                let discountValue = 0;
+                let displayText = '';
+                
+                if (d.loanType && d.loanAmount && d.totalMonths && d.interestRate) {
+                  // Es un préstamo con tabla de amortización
+                  const nextPaymentNumber = (d.paymentsMade || 0) + 1;
+                  discountValue = calculateInstallment(d, nextPaymentNumber);
+                  displayText = `Cuota #${nextPaymentNumber}`;
+                } else if (d.basedOnSalary) {
+                  // Descuento basado en sueldo
+                  discountValue = baseIngreso * d.percentage / 100;
+                  displayText = `${d.percentage}%`;
+                } else {
+                  // Descuento fijo
+                  discountValue = d.amount;
+                  displayText = 'Fijo';
+                }
+                
+                return (
+                  <div key={d.id} className="flex justify-between text-xs bg-red-500/10 rounded px-3 py-1">
+                    <span className="text-slate-300">{d.name}</span>
+                    <span className="text-red-400">
+                      {displayText}: {formatCurrency(discountValue)}
+                    </span>
+                  </div>
+                );
+              })}
               {iessAporteActive && (
                 <div className="flex justify-between text-xs bg-red-500/10 rounded px-3 py-1">
                   <span className="text-slate-300 flex items-center gap-1"><Shield size={12} /> IESS Aporte</span>

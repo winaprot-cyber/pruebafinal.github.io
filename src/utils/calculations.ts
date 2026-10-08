@@ -199,12 +199,51 @@ export function calculateDiscounts(discounts: Discount[], baseSalary: number, ba
   return discounts
     .filter(d => d.active && !d.isSpecial)
     .reduce((sum, d) => {
+      // Si es un préstamo con tabla de amortización, calcular la cuota actual
+      if (d.loanType && d.loanAmount && d.totalMonths && d.interestRate) {
+        const nextPaymentNumber = (d.paymentsMade || 0) + 1;
+        const installment = calculateInstallment(d, nextPaymentNumber);
+        return sum + installment;
+      }
+      
+      // Descuento basado en sueldo
       if (d.basedOnSalary) {
         const base = baseIngreso !== undefined ? baseIngreso : baseSalary;
         return sum + (base * d.percentage / 100);
       }
+      
+      // Descuento fijo
       return sum + d.amount;
     }, 0);
+}
+
+/**
+ * Calcular cuota según tipo de amortización
+ */
+function calculateInstallment(discount: Discount, paymentNumber: number): number {
+  if (!discount.loanAmount || !discount.totalMonths || !discount.interestRate) {
+    return discount.monthlyPaymentAmount || discount.amount || 0;
+  }
+
+  const principal = discount.loanAmount;
+  const months = discount.totalMonths;
+  const annualRate = discount.interestRate / 100;
+  const monthlyRate = annualRate / 12;
+
+  if (discount.amortizationType === 'alemana') {
+    // Amortización Alemana: cuota de capital constante + intereses decrecientes
+    const capitalInstallment = principal / months;
+    const remainingPrincipal = principal - (capitalInstallment * (paymentNumber - 1));
+    const interest = remainingPrincipal * monthlyRate;
+    return Math.round((capitalInstallment + interest) * 100) / 100;
+  } else {
+    // Amortización Francesa: cuota fija
+    if (monthlyRate === 0) {
+      return Math.round((principal / months) * 100) / 100;
+    }
+    const installment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+    return Math.round(installment * 100) / 100;
+  }
 }
 
 export function formatCurrency(amount: number): string {
