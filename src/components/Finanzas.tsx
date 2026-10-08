@@ -38,6 +38,11 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   const [loanPaymentPhoto, setLoanPaymentPhoto] = useState<string>('');
   const loanPaymentPhotoRef = useRef<HTMLInputElement>(null);
 
+  // Amortization table state
+  const [showAmortizationTable, setShowAmortizationTable] = useState(false);
+  const [selectedDiscountForTable, setSelectedDiscountForTable] = useState<Discount | null>(null);
+  const [customInstallments, setCustomInstallments] = useState<Record<number, number>>({});
+
   const base = store.data.salaryConfig.baseSalary;
   const { iessAporteActive, saludConyugeActive, fondosReservaActive } = store.data.salaryConfig;
 
@@ -140,9 +145,27 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   };
 
   const shareWhatsApp = async (type: string, itemData: any) => {
-    // Compartir SOLO en modo foto
-    const elementId = `share-discount-${itemData.id}`;
-    await shareAsImageWhatsApp(elementId, `${type.toLowerCase()}-${itemData.name}-${Date.now()}`);
+    const fields = [
+      { label: 'Nombre:', value: itemData.name },
+      { label: 'Monto:', value: formatCurrency(itemData.amount), highlight: true },
+    ];
+    
+    if (itemData.loanType) {
+      fields.push({ label: 'Tipo:', value: itemData.loanType });
+    }
+    if (itemData.totalMonths) {
+      fields.push({ label: 'Meses:', value: itemData.totalMonths.toString() });
+    }
+    fields.push({ label: 'Estado:', value: itemData.active ? 'Activo' : 'Inactivo' });
+
+    const receiptData = {
+      title: 'Control Biométrico',
+      subtitle: type,
+      color: '#ef4444',
+      fields,
+      footer: 'by Hugo León',
+    };
+    await shareAsImageWhatsApp(receiptData, `${type.toLowerCase()}-${itemData.name}-${Date.now()}`);
   };
 
   // Calcular cuota según tipo de amortización
@@ -172,10 +195,53 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     }
   };
 
+  // Calcular tabla de amortización completa
+  const calculateAmortizationTable = (discount: Discount): { number: number; amount: number; paid: boolean }[] => {
+    if (!discount.loanAmount || !discount.totalMonths || !discount.interestRate) {
+      return [];
+    }
+
+    const table = [];
+    for (let i = 1; i <= discount.totalMonths; i++) {
+      const installment = customInstallments[i] || calculateInstallment(discount, i);
+      const isPaid = (discount.loanPayments?.length || 0) >= i;
+      table.push({
+        number: i,
+        amount: installment,
+        paid: isPaid,
+      });
+    }
+    return table;
+  };
+
+  const openAmortizationTable = (discount: Discount) => {
+    setSelectedDiscountForTable(discount);
+    setShowAmortizationTable(true);
+  };
+
+  const handleCustomInstallmentChange = (installmentNumber: number, amount: string) => {
+    setCustomInstallments(prev => ({
+      ...prev,
+      [installmentNumber]: parseFloat(amount) || 0,
+    }));
+  };
+
+  const saveCustomInstallments = () => {
+    if (!selectedDiscountForTable) return;
+    
+    // Actualizar el descuento con las cuotas personalizadas
+    // Por ahora solo las guardamos en el estado local
+    // En una implementación completa, se guardarían en el store
+    setShowAmortizationTable(false);
+  };
+
   const openLoanPaymentModal = (discount: Discount) => {
     setSelectedDiscountForPayment(discount);
     const nextPaymentNumber = (discount.loanPayments?.length || 0) + 1;
-    const suggestedAmount = calculateInstallment(discount, nextPaymentNumber);
+    
+    // Usar cuota personalizada si existe, sino calcular
+    const suggestedAmount = customInstallments[nextPaymentNumber] || calculateInstallment(discount, nextPaymentNumber);
+    
     setLoanPaymentAmount(suggestedAmount.toString());
     setLoanPaymentDate(new Date().toISOString().split('T')[0]);
     setLoanPaymentPhoto('');
@@ -221,8 +287,21 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   };
 
   const shareLoanPaymentWhatsApp = async (payment: LoanPayment, discount: Discount) => {
-    const elementId = `loan-payment-receipt-${payment.id}`;
-    await shareAsImageWhatsApp(elementId, `pago-prestamo-${discount.name}-${payment.paymentNumber}`);
+    const receiptData = {
+      title: 'Control Biométrico',
+      subtitle: 'Pago de Préstamo',
+      color: '#3b82f6',
+      fields: [
+        { label: 'Préstamo:', value: discount.name },
+        { label: 'Cuota #:', value: payment.paymentNumber.toString(), highlight: true },
+        { label: 'Monto:', value: formatCurrency(payment.amount), highlight: true },
+        { label: 'Fecha:', value: new Date(payment.date).toLocaleDateString('es-EC') },
+        { label: 'Progreso:', value: `${discount.paymentsMade}/${discount.totalMonths} (${(((discount.paymentsMade || 0) / (discount.totalMonths || 1)) * 100).toFixed(1)}%)` },
+      ],
+      photo: payment.photo,
+      footer: 'by Hugo León',
+    };
+    await shareAsImageWhatsApp(receiptData, `pago-prestamo-${discount.name}-${payment.paymentNumber}`);
   };
 
   // Check for 25% loan alerts
@@ -666,12 +745,23 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                             {discount.paymentsMade || 0}/{discount.totalMonths} ({(((discount.paymentsMade || 0) / discount.totalMonths) * 100).toFixed(1)}%)
                           </span>
                         </div>
-                        <button
-                          onClick={() => openLoanPaymentModal(discount)}
-                          className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 hover:bg-blue-500/30"
-                        >
-                          + Registrar Pago
-                        </button>
+                        <div className="flex gap-2">
+                          {discount.amortizationType && discount.loanAmount && discount.interestRate && (
+                            <button
+                              onClick={() => openAmortizationTable(discount)}
+                              className="text-xs bg-purple-500/20 border border-purple-500/30 px-2 py-1 rounded text-purple-300 hover:bg-purple-500/30"
+                              title="Ver tabla de amortización"
+                            >
+                              📊 Tabla
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openLoanPaymentModal(discount)}
+                            className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 hover:bg-blue-500/30"
+                          >
+                            + Registrar Pago
+                          </button>
+                        </div>
                       </div>
                       
                       {/* Lista de pagos individuales */}
@@ -705,45 +795,6 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                                   </button>
                                 </div>
                               </div>
-                              {/* Hidden receipt for image capture */}
-                              <div id={`loan-payment-receipt-${payment.id}`} className="hidden">
-                                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                                  <div className="text-center mb-4">
-                                    <h2 className="text-xl font-bold text-blue-400">Control Biométrico</h2>
-                                    <p className="text-sm text-slate-400">Pago de Préstamo</p>
-                                  </div>
-                                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-400">Préstamo:</span>
-                                      <span className="font-medium">{discount.name}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-400">Pago #:</span>
-                                      <span className="font-bold">{payment.paymentNumber}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-400">Monto:</span>
-                                      <span className="text-emerald-400 font-bold">{formatCurrency(payment.amount)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-400">Fecha:</span>
-                                      <span>{new Date(payment.date).toLocaleDateString('es-EC')}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-400">Progreso:</span>
-                                      <span>{discount.paymentsMade}/{discount.totalMonths} ({(((discount.paymentsMade || 0) / (discount.totalMonths || 1)) * 100).toFixed(1)}%)</span>
-                                    </div>
-                                  </div>
-                                  {payment.photo && (
-                                    <div className="mt-4">
-                                      <img src={payment.photo} alt="Comprobante" className="w-full rounded-lg" />
-                                    </div>
-                                  )}
-                                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                                    by Hugo León
-                                  </div>
-                                </div>
-                              </div>
                             </div>
                           ))}
                         </div>
@@ -757,48 +808,6 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                 <button onClick={() => store.removeDiscount(discount.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
                 <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
               </div>
-              </div>
-              {/* Hidden receipt for image capture */}
-              <div id={`share-discount-${discount.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-red-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Descuento</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Nombre:</span>
-                      <span className="font-medium">{discount.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Monto:</span>
-                      <span className="text-red-400 font-bold">{formatCurrency(discount.amount)}</span>
-                    </div>
-                    {discount.loanType && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Tipo:</span>
-                        <span>{discount.loanType}</span>
-                      </div>
-                    )}
-                    {discount.totalMonths && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Meses:</span>
-                        <span>{discount.totalMonths}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Estado:</span>
-                      <span>{discount.active ? 'Activo' : 'Inactivo'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
-                </div>
               </div>
             </div>
           ))}
@@ -906,48 +915,112 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                   Guardar Pago
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              {/* Hidden receipt for image capture */}
-              {(selectedDiscountForPayment.loanPayments?.length || 0) > 0 && (
-                <div id={`loan-payment-receipt-${selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].id}`} className="hidden">
-                  <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                    <div className="text-center mb-4">
-                      <h2 className="text-xl font-bold text-blue-400">Control Biométrico</h2>
-                      <p className="text-sm text-slate-400">Pago de Préstamo</p>
-                    </div>
-                    <div className="border-t border-slate-700 pt-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Préstamo:</span>
-                        <span className="font-medium">{selectedDiscountForPayment.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Pago #:</span>
-                        <span className="font-bold">{selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].paymentNumber}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Monto:</span>
-                        <span className="text-emerald-400 font-bold">{formatCurrency(selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].amount)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Fecha:</span>
-                        <span>{new Date(selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].date).toLocaleDateString('es-EC')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Progreso:</span>
-                        <span>{selectedDiscountForPayment.paymentsMade}/{selectedDiscountForPayment.totalMonths} ({(((selectedDiscountForPayment.paymentsMade || 0) / (selectedDiscountForPayment.totalMonths || 1)) * 100).toFixed(1)}%)</span>
-                      </div>
-                    </div>
-                    {selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].photo && (
-                      <div className="mt-4">
-                        <img src={selectedDiscountForPayment.loanPayments![selectedDiscountForPayment.loanPayments!.length - 1].photo} alt="Comprobante" className="w-full rounded-lg" />
-                      </div>
-                    )}
-                    <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                      by Hugo León
-                    </div>
+      {/* Amortization Table Modal */}
+      <AnimatePresence>
+        {showAmortizationTable && selectedDiscountForTable && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Tabla de Amortización</h3>
+                  <p className="text-xs text-slate-400">{selectedDiscountForTable.name}</p>
+                  <p className="text-xs text-purple-400 mt-1">
+                    Tipo: {selectedDiscountForTable.amortizationType === 'frances' ? 'Francesa (Cuota Fija)' : 'Alemana (Cuota Decreciente)'}
+                  </p>
+                </div>
+                <button onClick={() => setShowAmortizationTable(false)} className="text-slate-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="bg-slate-700/30 rounded-lg p-3 mb-4">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-slate-400">Monto</p>
+                    <p className="text-sm font-bold text-white">{formatCurrency(selectedDiscountForTable.loanAmount || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Tasa Anual</p>
+                    <p className="text-sm font-bold text-white">{selectedDiscountForTable.interestRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Meses</p>
+                    <p className="text-sm font-bold text-white">{selectedDiscountForTable.totalMonths}</p>
                   </div>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {calculateAmortizationTable(selectedDiscountForTable).map((installment) => (
+                  <div
+                    key={installment.number}
+                    className={`flex items-center justify-between bg-slate-700/30 rounded-lg px-3 py-2 ${
+                      installment.paid ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${
+                        installment.paid 
+                          ? 'bg-emerald-500/20 text-emerald-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        #{installment.number}
+                      </span>
+                      {installment.paid && (
+                        <span className="text-xs text-emerald-400">✓ Pagado</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={installment.amount}
+                        onChange={(e) => handleCustomInstallmentChange(installment.number, e.target.value)}
+                        disabled={installment.paid}
+                        className={`w-28 bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-white text-sm text-right ${
+                          installment.paid ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-xs text-blue-300">
+                  💡 Puedes editar el monto de cada cuota manualmente. Los cambios se aplicarán al registrar pagos.
+                </p>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={saveCustomInstallments}
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition"
+                >
+                  Guardar Cambios
+                </button>
+                <button
+                  onClick={() => setShowAmortizationTable(false)}
+                  className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-sm transition"
+                >
+                  Cerrar
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

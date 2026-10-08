@@ -180,15 +180,62 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
   };
 
   const sharePaymentWhatsApp = async (type: string, item: any, amount: number, photo?: string) => {
-    // Compartir SOLO en modo foto
-    const elementId = `payment-receipt-${item.id}`;
-    await shareAsImageWhatsApp(elementId, `pago-${item.name}-${Date.now()}`);
+    const receiptData = {
+      title: 'Control Biométrico',
+      subtitle: `Comprobante de Pago - ${type}`,
+      color: type === 'Deuda' ? '#ef4444' : '#f97316',
+      fields: [
+        { label: 'Concepto:', value: item.name },
+        { label: 'Monto:', value: formatCurrency(amount), highlight: true },
+        { label: 'Fecha:', value: new Date().toLocaleDateString('es-EC') },
+        ...(item.progress ? [{ label: 'Progreso:', value: `${item.progress.toFixed(1)}%` }] : []),
+        ...(item.paymentsMade ? [{ label: 'Pagos:', value: `${item.paymentsMade}/${item.totalPayments || '?'}` }] : []),
+      ],
+      photo: photo,
+      footer: 'by Hugo León',
+    };
+    await shareAsImageWhatsApp(receiptData, `pago-${item.name}-${Date.now()}`);
   };
 
   const shareWhatsApp = async (type: string, itemData: any) => {
-    // Compartir SOLO en modo foto
-    const elementId = `share-item-${itemData.id}`;
-    await shareAsImageWhatsApp(elementId, `${type.toLowerCase()}-${itemData.name}-${Date.now()}`);
+    const colorMap: Record<string, string> = {
+      'Ingreso': '#10b981',
+      'Gasto': '#f97316',
+      'Deuda': '#ef4444',
+    };
+    
+    const fields = [];
+    if (type === 'Ingreso') {
+      fields.push(
+        { label: 'Nombre:', value: itemData.name },
+        { label: 'Monto:', value: formatCurrency(itemData.amount), highlight: true },
+        { label: 'Tipo:', value: itemData.type },
+        { label: 'Frecuencia:', value: itemData.fixed ? 'Fijo' : 'Variable' },
+      );
+    } else if (type === 'Gasto') {
+      fields.push(
+        { label: 'Categoría:', value: itemData.name },
+        { label: 'Monto:', value: formatCurrency(itemData.amount), highlight: true },
+        { label: 'Frecuencia:', value: itemData.frequency },
+      );
+    } else if (type === 'Deuda') {
+      fields.push(
+        { label: 'Nombre:', value: itemData.name },
+        { label: 'Total:', value: formatCurrency(itemData.totalAmount) },
+        { label: 'Pagado:', value: formatCurrency(itemData.paidAmount) },
+        { label: 'Restante:', value: formatCurrency(itemData.totalAmount - itemData.paidAmount), highlight: true },
+        { label: 'Progreso:', value: `${itemData.progress.toFixed(1)}%` },
+      );
+    }
+
+    const receiptData = {
+      title: 'Control Biométrico',
+      subtitle: type,
+      color: colorMap[type] || '#3b82f6',
+      fields,
+      footer: 'by Hugo León',
+    };
+    await shareAsImageWhatsApp(receiptData, `${type.toLowerCase()}-${itemData.name}-${Date.now()}`);
   };
 
   const startEditDebt = (debt: Debt) => {
@@ -348,40 +395,6 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
                   <button onClick={() => shareWhatsApp('Ingreso', inc)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
                 </div>
               </div>
-              {/* Hidden receipt for image capture */}
-              <div id={`share-item-${inc.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-blue-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Ingreso</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Nombre:</span>
-                      <span className="font-medium">{inc.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Monto:</span>
-                      <span className="text-emerald-400 font-bold">{formatCurrency(inc.amount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Tipo:</span>
-                      <span>{inc.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Frecuencia:</span>
-                      <span>{inc.fixed ? 'Fijo' : 'Variable'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
-                </div>
-              </div>
             </div>
           ))}
           {store.data.incomes.length === 0 && <p className="text-slate-500 text-sm text-center py-2">Sin ingresos adicionales</p>}
@@ -436,36 +449,6 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
                   <button onClick={() => startEditExpense(exp)} className="text-blue-400 hover:text-blue-300"><Edit2 size={14} /></button>
                   <button onClick={() => store.removeExpense(exp.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
                   <button onClick={() => shareWhatsApp('Gasto', exp)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
-                </div>
-              </div>
-              {/* Hidden receipt for image capture */}
-              <div id={`share-item-${exp.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-orange-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Gasto</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Categoría:</span>
-                      <span className="font-medium">{categoryLabels[exp.category] || exp.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Monto:</span>
-                      <span className="text-orange-400 font-bold">{formatCurrency(exp.amount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Frecuencia:</span>
-                      <span>{exp.frequency}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
                 </div>
               </div>
             </div>
@@ -536,52 +519,6 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
                 </div>
                 <p className="text-xs text-slate-500 mt-1">Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</p>
               </div>
-              {/* Hidden receipt for image capture */}
-              <div id={`share-item-${debt.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-red-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Deuda</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Nombre:</span>
-                      <span className="font-medium">{debt.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Tipo:</span>
-                      <span>{debt.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Total:</span>
-                      <span className="font-bold">{formatCurrency(debt.totalAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Pagado:</span>
-                      <span className="text-emerald-400 font-bold">{formatCurrency(debt.paidAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Restante:</span>
-                      <span className="text-red-400 font-bold">{formatCurrency(debt.totalAmount - debt.paidAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Progreso:</span>
-                      <span>{debt.progress.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Pagos:</span>
-                      <span>{debt.paymentsMade}/{debt.totalPayments || '?'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
-                </div>
-              </div>
             </div>
           ))}
           {store.data.debts.length === 0 && <p className="text-slate-500 text-sm text-center py-2">Sin deudas registradas</p>}
@@ -637,54 +574,6 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
                 className="w-full flex items-center justify-center gap-2 bg-green-500/20 border border-green-500/30 px-3 py-2 rounded-lg text-green-300 text-sm">
                 <Share2 size={14} /> Compartir por WhatsApp (Foto)
               </button>
-              
-              {/* Hidden receipt for image capture */}
-              <div id={`payment-receipt-${selectedDebt.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-blue-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Comprobante de Pago</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Concepto:</span>
-                      <span className="font-medium">{selectedDebt.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Tipo:</span>
-                      <span>{selectedDebt.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Monto pagado:</span>
-                      <span className="text-emerald-400 font-bold">{formatCurrency(parseFloat(paymentAmount) || selectedDebt.monthlyPayment)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Progreso:</span>
-                      <span>{selectedDebt.progress.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Pagos:</span>
-                      <span>{selectedDebt.paymentsMade}/{selectedDebt.totalPayments || '?'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Restante:</span>
-                      <span className="text-red-400">{formatCurrency(selectedDebt.totalAmount - selectedDebt.paidAmount)}</span>
-                    </div>
-                  </div>
-                  {paymentPhoto && (
-                    <div className="mt-4">
-                      <img src={paymentPhoto} alt="Comprobante" className="w-full rounded-lg" />
-                    </div>
-                  )}
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
@@ -733,42 +622,6 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
                 className="w-full flex items-center justify-center gap-2 bg-green-500/20 border border-green-500/30 px-3 py-2 rounded-lg text-green-300 text-sm">
                 <Share2 size={14} /> Compartir por WhatsApp (Foto)
               </button>
-              
-              {/* Hidden receipt for image capture */}
-              <div id={`payment-receipt-${selectedExpense.id}`} className="hidden">
-                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-orange-400">Control Biométrico</h2>
-                    <p className="text-sm text-slate-400">Comprobante de Pago - Gasto</p>
-                  </div>
-                  <div className="border-t border-slate-700 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Concepto:</span>
-                      <span className="font-medium">{selectedExpense.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Categoría:</span>
-                      <span>{categoryLabels[selectedExpense.category] || selectedExpense.category}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Monto pagado:</span>
-                      <span className="text-emerald-400 font-bold">{formatCurrency(selectedExpense.amount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Fecha:</span>
-                      <span>{new Date().toLocaleDateString('es-EC')}</span>
-                    </div>
-                  </div>
-                  {paymentPhoto && (
-                    <div className="mt-4">
-                      <img src={paymentPhoto} alt="Comprobante" className="w-full rounded-lg" />
-                    </div>
-                  )}
-                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
-                    by Hugo León
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
