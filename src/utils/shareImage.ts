@@ -1,9 +1,50 @@
 import html2canvas from 'html2canvas';
 
 /**
+ * Convierte colores oklch a rgb para compatibilidad con html2canvas
+ */
+function fixOklchColors(element: HTMLElement) {
+  const allElements = element.querySelectorAll('*');
+  allElements.forEach(el => {
+    const htmlEl = el as HTMLElement;
+    const style = window.getComputedStyle(htmlEl);
+    
+    // Convertir colores problemáticos
+    const properties = ['color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'];
+    
+    properties.forEach(prop => {
+      const value = style.getPropertyValue(prop === 'backgroundColor' ? 'background-color' : prop === 'borderColor' ? 'border-color' : prop);
+      if (value && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
+        // Crear un canvas temporal para convertir el color
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 1;
+          canvas.height = 1;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = value;
+            const computed = ctx.fillStyle; // El navegador convierte a rgb/hex
+            htmlEl.style.setProperty(prop === 'backgroundColor' ? 'background-color' : prop, computed, 'important');
+          }
+        } catch (e) {
+          // Fallback a colores seguros
+          if (prop === 'backgroundColor' || prop === 'color') {
+            htmlEl.style.setProperty(prop === 'backgroundColor' ? 'background-color' : prop, '#1e293b', 'important');
+          }
+        }
+      }
+    });
+
+    // También procesar gradientes
+    const bg = style.background;
+    if (bg && (bg.includes('oklch') || bg.includes('oklab'))) {
+      htmlEl.style.setProperty('background', '#1e293b', 'important');
+    }
+  });
+}
+
+/**
  * Captura un elemento HTML como imagen y lo comparte por WhatsApp
- * @param elementId - ID del elemento HTML a capturar
- * @param filename - Nombre del archivo (opcional)
  */
 export async function shareAsImageWhatsApp(elementId: string, filename: string = 'comprobante'): Promise<void> {
   try {
@@ -14,17 +55,16 @@ export async function shareAsImageWhatsApp(elementId: string, filename: string =
       return;
     }
 
-    // Crear un contenedor temporal visible
+    // Crear un contenedor temporal
     const tempContainer = document.createElement('div');
+    tempContainer.id = 'temp-share-container';
     tempContainer.style.cssText = `
       position: fixed !important;
-      left: 0 !important;
+      left: -9999px !important;
       top: 0 !important;
       z-index: 99999 !important;
       pointer-events: none !important;
       background: #1e293b;
-      padding: 0;
-      margin: 0;
     `;
     
     // Clonar el elemento
@@ -38,7 +78,6 @@ export async function shareAsImageWhatsApp(elementId: string, filename: string =
       el.style.setProperty('visibility', 'visible', 'important');
       el.style.setProperty('opacity', '1', 'important');
       
-      // Procesar hijos recursivamente
       Array.from(el.children).forEach(child => {
         if (child instanceof HTMLElement) {
           makeVisible(child);
@@ -46,58 +85,58 @@ export async function shareAsImageWhatsApp(elementId: string, filename: string =
       });
     };
     
-    // Hacer visible el clon y todos sus hijos
     makeVisible(clonedElement);
     
-    // Estilos adicionales para el contenedor principal
+    // Estilos para el contenedor principal
     clonedElement.style.setProperty('position', 'relative', 'important');
     clonedElement.style.setProperty('width', '400px', 'important');
-    clonedElement.style.setProperty('z-index', '99999', 'important');
-    clonedElement.style.setProperty('pointer-events', 'none', 'important');
+    clonedElement.style.setProperty('left', '0', 'important');
     
     tempContainer.appendChild(clonedElement);
     document.body.appendChild(tempContainer);
 
-    // Esperar un momento para que se renderice
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Mover el contenedor a una posición visible brevemente para renderizado
+    await new Promise(resolve => setTimeout(resolve, 50));
+    tempContainer.style.setProperty('left', '0', 'important');
+    
+    // Esperar a que se renderice
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Convertir colores oklch a rgb antes de capturar
+    fixOklchColors(clonedElement);
 
     try {
-      // Capturar el elemento como canvas
       const canvas = await html2canvas(clonedElement, {
         backgroundColor: '#1e293b',
         scale: 2,
-        logging: true, // Habilitar logging para debug
+        logging: false,
         useCORS: true,
         allowTaint: true,
         width: 400,
         windowWidth: 400,
-        onclone: (clonedDoc) => {
-          // Asegurar que todos los elementos estén visibles en el documento clonado
-          const allElements = clonedDoc.querySelectorAll('*');
-          allElements.forEach(el => {
-            const htmlEl = el as HTMLElement;
-            htmlEl.classList.remove('hidden');
-            htmlEl.style.setProperty('display', 'block', 'important');
-            htmlEl.style.setProperty('visibility', 'visible', 'important');
-          });
+        foreignObjectRendering: false,
+        ignoreElements: (el) => {
+          // Ignorar elementos con colores problemáticos
+          const style = window.getComputedStyle(el);
+          const bg = style.background || '';
+          if (bg.includes('oklch') || bg.includes('oklab')) {
+            return false; // No ignorar, ya los convertimos
+          }
+          return false;
         },
       });
 
-      // Limpiar el contenedor temporal
+      // Limpiar
       document.body.removeChild(tempContainer);
 
-      // Convertir a blob
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          console.error('Error al convertir canvas a blob');
           alert('Error al generar la imagen.');
           return;
         }
 
-        // Crear archivo
         const file = new File([blob], `${filename}.png`, { type: 'image/png' });
 
-        // Verificar si Web Share API está disponible y soporta archivos
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
@@ -106,35 +145,47 @@ export async function shareAsImageWhatsApp(elementId: string, filename: string =
               text: 'Comprobante',
             });
           } catch (error) {
-            console.error('Error al compartir:', error);
-            // Fallback: descargar la imagen
             downloadImage(canvas, filename);
           }
         } else {
-          // Fallback: descargar la imagen para que el usuario la comparta manualmente
           downloadImage(canvas, filename);
-          alert('✅ La imagen se ha descargado. Por favor compártela manualmente por WhatsApp.');
+          alert('✅ La imagen se ha descargado. Compártela por WhatsApp.');
         }
       }, 'image/png', 1.0);
     } catch (canvasError) {
-      // Limpiar el contenedor temporal en caso de error
       if (document.body.contains(tempContainer)) {
         document.body.removeChild(tempContainer);
       }
       console.error('Error en html2canvas:', canvasError);
-      const errorMessage = canvasError instanceof Error ? canvasError.message : 'Error desconocido';
-      alert(`Error al capturar la imagen: ${errorMessage}\n\nPor favor intenta de nuevo.`);
+      
+      // Fallback: intentar con foreignObjectRendering desactivado
+      try {
+        const fallbackCanvas = await html2canvas(clonedElement, {
+          backgroundColor: '#1e293b',
+          scale: 1,
+          logging: false,
+          useCORS: false,
+          allowTaint: true,
+          foreignObjectRendering: false,
+        });
+        
+        document.body.removeChild(tempContainer);
+        downloadImage(fallbackCanvas, filename);
+        alert('✅ La imagen se ha descargado (modo alternativo). Compártela por WhatsApp.');
+      } catch (fallbackError) {
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+        console.error('Error en fallback:', fallbackError);
+        alert('Error al capturar la imagen. Intenta de nuevo.');
+      }
     }
   } catch (error) {
-    console.error('Error general al compartir:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    alert(`Error al generar la imagen: ${errorMessage}\n\nPor favor intenta de nuevo.`);
+    console.error('Error general:', error);
+    alert('Error al generar la imagen. Intenta de nuevo.');
   }
 }
 
-/**
- * Descarga una imagen desde un canvas
- */
 function downloadImage(canvas: HTMLCanvasElement, filename: string): void {
   try {
     const link = document.createElement('a');
@@ -144,7 +195,6 @@ function downloadImage(canvas: HTMLCanvasElement, filename: string): void {
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error('Error al descargar imagen:', error);
-    alert('Error al descargar la imagen.');
+    console.error('Error al descargar:', error);
   }
 }

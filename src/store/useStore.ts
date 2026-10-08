@@ -58,6 +58,9 @@ export interface Discount {
   monthlyPaymentAmount?: number; // Monto del pago mensual para préstamos quirografarios
   paymentsMade?: number; // Número de pagos realizados
   loanPayments?: LoanPayment[]; // Pagos individuales registrados
+  amortizationType?: 'frances' | 'alemana'; // Tipo de amortización
+  interestRate?: number; // Tasa de interés anual (%)
+  loanAmount?: number; // Monto total del préstamo
 }
 
 export interface Income {

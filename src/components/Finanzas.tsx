@@ -26,6 +26,9 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   const [discountLoanType, setDiscountLoanType] = useState('');
   const [discountTotalMonths, setDiscountTotalMonths] = useState('');
   const [discountFixedPayment, setDiscountFixedPayment] = useState(false);
+  const [discountAmortizationType, setDiscountAmortizationType] = useState<'frances' | 'alemana'>('frances');
+  const [discountInterestRate, setDiscountInterestRate] = useState('');
+  const [discountLoanAmount, setDiscountLoanAmount] = useState('');
 
   // Loan payment modal state
   const [showLoanPaymentModal, setShowLoanPaymentModal] = useState(false);
@@ -77,6 +80,9 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       fixedPayment: discountFixedPayment,
       monthlyPaymentAmount: parseFloat(discountAmount) || 0,
       paymentsMade: existingDiscount?.paymentsMade || 0,
+      amortizationType: discountAmortizationType,
+      interestRate: parseFloat(discountInterestRate) || 0,
+      loanAmount: parseFloat(discountLoanAmount) || 0,
     };
     if (editingDiscount) {
       store.updateDiscount(editingDiscount, discount);
@@ -103,6 +109,9 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     setDiscountLoanType('');
     setDiscountTotalMonths('');
     setDiscountFixedPayment(false);
+    setDiscountAmortizationType('frances');
+    setDiscountInterestRate('');
+    setDiscountLoanAmount('');
     setShowDiscountForm(false);
   };
 
@@ -124,6 +133,9 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     setDiscountLoanType(d.loanType || '');
     setDiscountTotalMonths(d.totalMonths?.toString() || '');
     setDiscountFixedPayment(d.fixedPayment || false);
+    setDiscountAmortizationType(d.amortizationType || 'frances');
+    setDiscountInterestRate(d.interestRate?.toString() || '');
+    setDiscountLoanAmount(d.loanAmount?.toString() || '');
     setShowDiscountForm(true);
   };
 
@@ -133,9 +145,38 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     await shareAsImageWhatsApp(elementId, `${type.toLowerCase()}-${itemData.name}-${Date.now()}`);
   };
 
+  // Calcular cuota según tipo de amortización
+  const calculateInstallment = (discount: Discount, paymentNumber: number): number => {
+    if (!discount.loanAmount || !discount.totalMonths || !discount.interestRate) {
+      return discount.monthlyPaymentAmount || discount.amount || 0;
+    }
+
+    const principal = discount.loanAmount;
+    const months = discount.totalMonths;
+    const annualRate = discount.interestRate / 100;
+    const monthlyRate = annualRate / 12;
+
+    if (discount.amortizationType === 'alemana') {
+      // Amortización Alemana: cuota de capital constante + intereses decrecientes
+      const capitalInstallment = principal / months;
+      const remainingPrincipal = principal - (capitalInstallment * (paymentNumber - 1));
+      const interest = remainingPrincipal * monthlyRate;
+      return Math.round((capitalInstallment + interest) * 100) / 100;
+    } else {
+      // Amortización Francesa: cuota fija
+      if (monthlyRate === 0) {
+        return Math.round((principal / months) * 100) / 100;
+      }
+      const installment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+      return Math.round(installment * 100) / 100;
+    }
+  };
+
   const openLoanPaymentModal = (discount: Discount) => {
     setSelectedDiscountForPayment(discount);
-    setLoanPaymentAmount((discount.monthlyPaymentAmount || discount.amount).toString());
+    const nextPaymentNumber = (discount.loanPayments?.length || 0) + 1;
+    const suggestedAmount = calculateInstallment(discount, nextPaymentNumber);
+    setLoanPaymentAmount(suggestedAmount.toString());
     setLoanPaymentDate(new Date().toISOString().split('T')[0]);
     setLoanPaymentPhoto('');
     setShowLoanPaymentModal(true);
@@ -496,48 +537,90 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                   </div>
                 </div>
                 
-                {/* Pago mensual y tipo de pago */}
+                {/* Configuración de Préstamo Quirografario */}
                 {discountLoanType === 'quirografario' && discountTotalMonths && (
                   <div className="space-y-3 bg-slate-700/20 rounded-lg p-3">
-                    <label className="flex items-center gap-2 text-sm text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={discountFixedPayment}
-                        onChange={(e) => setDiscountFixedPayment(e.target.checked)}
-                        className="rounded border-slate-500"
-                      />
-                      Pago fijo manual (ingresar monto mensual)
-                    </label>
+                    <h4 className="text-sm font-medium text-blue-400">Configuración del Préstamo</h4>
                     
-                    {discountFixedPayment ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Pago Mensual Fijo ($)</label>
+                        <label className="text-xs text-slate-400 block mb-1">Monto del Préstamo ($)</label>
                         <input
                           type="number"
                           step="0.01"
-                          placeholder="Monto mensual"
-                          value={discountAmount}
-                          onChange={(e) => setDiscountAmount(e.target.value)}
+                          placeholder="Ej: 10000"
+                          value={discountLoanAmount}
+                          onChange={(e) => setDiscountLoanAmount(e.target.value)}
                           className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
                         />
-                        <p className="text-xs text-slate-500 mt-1">
-                          {discountTotalMonths} pagos de {formatCurrency(parseFloat(discountAmount) || 0)} = Total: {formatCurrency((parseFloat(discountAmount) || 0) * parseInt(discountTotalMonths))}
-                        </p>
                       </div>
-                    ) : (
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Monto Total del Préstamo ($)</label>
+                        <label className="text-xs text-slate-400 block mb-1">Tasa de Interés Anual (%)</label>
                         <input
                           type="number"
                           step="0.01"
-                          placeholder="Monto total"
-                          value={discountAmount}
-                          onChange={(e) => setDiscountAmount(e.target.value)}
+                          placeholder="Ej: 9.5"
+                          value={discountInterestRate}
+                          onChange={(e) => setDiscountInterestRate(e.target.value)}
                           className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
                         />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Pago mensual automático: {formatCurrency((parseFloat(discountAmount) || 0) / parseInt(discountTotalMonths || '1'))}
-                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Tipo de Amortización</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDiscountAmortizationType('frances')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                            discountAmortizationType === 'frances'
+                              ? 'bg-blue-500/30 border border-blue-500/50 text-blue-300'
+                              : 'bg-slate-700/50 border border-slate-600 text-slate-400 hover:bg-slate-600/50'
+                          }`}
+                        >
+                          Francesa (Cuota Fija)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDiscountAmortizationType('alemana')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                            discountAmortizationType === 'alemana'
+                              ? 'bg-purple-500/30 border border-purple-500/50 text-purple-300'
+                              : 'bg-slate-700/50 border border-slate-600 text-slate-400 hover:bg-slate-600/50'
+                          }`}
+                        >
+                          Alemana (Cuota Decreciente)
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {discountAmortizationType === 'frances' 
+                          ? 'Cuota fija durante todo el préstamo'
+                          : 'Cuotas decrecientes (capital constante + intereses decrecientes)'}
+                      </p>
+                    </div>
+
+                    {/* Vista previa de cuotas */}
+                    {discountLoanAmount && discountInterestRate && discountTotalMonths && (
+                      <div className="bg-slate-800/50 rounded-lg p-3">
+                        <p className="text-xs text-slate-400 mb-2">Vista previa de cuotas:</p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {Array.from({ length: Math.min(5, parseInt(discountTotalMonths)) }, (_, i) => {
+                            const installment = calculateInstallment(
+                              { loanAmount: parseFloat(discountLoanAmount), interestRate: parseFloat(discountInterestRate), totalMonths: parseInt(discountTotalMonths), amortizationType: discountAmortizationType } as Discount,
+                              i + 1
+                            );
+                            return (
+                              <div key={i} className="flex justify-between text-xs">
+                                <span className="text-slate-400">Cuota {i + 1}:</span>
+                                <span className="text-white font-medium">{formatCurrency(installment)}</span>
+                              </div>
+                            );
+                          })}
+                          {parseInt(discountTotalMonths) > 5 && (
+                            <p className="text-xs text-slate-500 text-center">... y {parseInt(discountTotalMonths) - 5} cuotas más</p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -753,6 +836,16 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                 <p className="text-xs text-blue-400 mt-1">
                   Siguiente pago: #{(selectedDiscountForPayment.loanPayments?.length || 0) + 1}
                 </p>
+                {selectedDiscountForPayment.amortizationType && (
+                  <p className="text-xs text-purple-400 mt-1">
+                    Tipo: {selectedDiscountForPayment.amortizationType === 'frances' ? 'Francesa (Cuota Fija)' : 'Alemana (Cuota Decreciente)'}
+                  </p>
+                )}
+                {selectedDiscountForPayment.loanAmount && selectedDiscountForPayment.interestRate && (
+                  <p className="text-xs text-emerald-400 mt-1">
+                    Cuota sugerida: {formatCurrency(calculateInstallment(selectedDiscountForPayment, (selectedDiscountForPayment.loanPayments?.length || 0) + 1))}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-4">
