@@ -410,48 +410,75 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     />
                   )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <select
-                    value={discountLoanType}
-                    onChange={(e) => setDiscountLoanType(e.target.value)}
-                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
-                  >
-                    <option value="">Tipo (opcional)</option>
-                    <option value="quirografario">Préstamo Quirografario</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Meses totales"
-                    value={discountTotalMonths}
-                    onChange={(e) => setDiscountTotalMonths(e.target.value)}
-                    className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
-                  />
-                  <label className="flex items-center gap-2 text-sm text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={discountFixedPayment}
-                      onChange={(e) => setDiscountFixedPayment(e.target.checked)}
-                      className="rounded border-slate-500"
-                    />
-                    Pago fijo manual
-                  </label>
-                </div>
-                {/* Mostrar campo de pago mensual si es préstamo quirografario con pago fijo */}
-                {discountLoanType === 'quirografario' && discountFixedPayment && discountTotalMonths && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Pago Mensual ($)</label>
+                    <label className="text-xs text-slate-400 block mb-1">Tipo de Préstamo</label>
+                    <select
+                      value={discountLoanType}
+                      onChange={(e) => setDiscountLoanType(e.target.value)}
+                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                    >
+                      <option value="">Sin préstamo</option>
+                      <option value="quirografario">Préstamo Quirografario</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Meses Totales</label>
                     <input
                       type="number"
-                      step="0.01"
-                      placeholder="Monto mensual"
-                      value={discountAmount}
-                      onChange={(e) => setDiscountAmount(e.target.value)}
+                      placeholder="Ej: 12"
+                      value={discountTotalMonths}
+                      onChange={(e) => setDiscountTotalMonths(e.target.value)}
                       className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
                     />
-                    <p className="text-xs text-slate-500 mt-1">
-                      {discountTotalMonths} pagos de {formatCurrency(parseFloat(discountAmount) || 0)} = {formatCurrency((parseFloat(discountAmount) || 0) * parseInt(discountTotalMonths))}
-                    </p>
+                  </div>
+                </div>
+                
+                {/* Pago mensual y tipo de pago */}
+                {discountLoanType === 'quirografario' && discountTotalMonths && (
+                  <div className="space-y-3 bg-slate-700/20 rounded-lg p-3">
+                    <label className="flex items-center gap-2 text-sm text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={discountFixedPayment}
+                        onChange={(e) => setDiscountFixedPayment(e.target.checked)}
+                        className="rounded border-slate-500"
+                      />
+                      Pago fijo manual (ingresar monto mensual)
+                    </label>
+                    
+                    {discountFixedPayment ? (
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Pago Mensual Fijo ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Monto mensual"
+                          value={discountAmount}
+                          onChange={(e) => setDiscountAmount(e.target.value)}
+                          className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          {discountTotalMonths} pagos de {formatCurrency(parseFloat(discountAmount) || 0)} = Total: {formatCurrency((parseFloat(discountAmount) || 0) * parseInt(discountTotalMonths))}
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-xs text-slate-400 block mb-1">Monto Total del Préstamo ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Monto total"
+                          value={discountAmount}
+                          onChange={(e) => setDiscountAmount(e.target.value)}
+                          className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Pago mensual automático: {formatCurrency((parseFloat(discountAmount) || 0) / parseInt(discountTotalMonths || '1'))}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -481,17 +508,33 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     {discount.totalMonths && ` • Mes ${discount.currentMonth}/${discount.totalMonths}`}
                   </p>
                   {discount.loanType === 'quirografario' && discount.totalMonths && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <label className="text-xs text-slate-400">Pagos realizados:</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={discount.totalMonths}
-                        value={discount.paymentsMade || 0}
-                        onChange={(e) => store.updateDiscount(discount.id, { paymentsMade: parseInt(e.target.value) || 0 })}
-                        className="w-16 bg-slate-700/50 border border-slate-600 rounded px-2 py-0.5 text-white text-xs"
-                      />
-                      <span className="text-xs text-slate-500">de {discount.totalMonths}</span>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-slate-400">Pagos realizados:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={discount.totalMonths}
+                          value={discount.paymentsMade || 0}
+                          onChange={(e) => store.updateDiscount(discount.id, { paymentsMade: parseInt(e.target.value) || 0 })}
+                          className="w-16 bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        />
+                        <span className="text-xs text-slate-500">de {discount.totalMonths}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-600 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all"
+                            style={{ width: `${((discount.paymentsMade || 0) / discount.totalMonths) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-blue-400">
+                          {(((discount.paymentsMade || 0) / discount.totalMonths) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        {discount.paymentsMade || 0} pagos completados • Faltan {discount.totalMonths - (discount.paymentsMade || 0)} pagos
+                      </p>
                     </div>
                   )}
                 </div>

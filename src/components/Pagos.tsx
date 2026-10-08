@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, ChevronDown, ChevronUp, Settings, DollarSign, Calendar, Shield, Heart, PiggyBank, ListChecks } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, parseISO, addWeeks, getWeek, startOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfYear, endOfYear, parseISO, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { applyRule45h, calculateBonuses, calculateDiscounts, calculateBaseIngreso, calculateSpecialDiscounts, calculateSpecialBonuses, formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -15,19 +15,18 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   const [overtimeRate100, setOvertimeRate100] = useState(store.data.salaryConfig.overtimeRate100.toString());
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [selectedWeeks, setSelectedWeeks] = useState<number[]>([]);
-  const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const today = new Date();
-  const selectedMonth = addWeeks(startOfMonth(today), monthOffset * 4);
-  const monthStart = startOfMonth(selectedMonth);
-  const monthEnd = endOfMonth(selectedMonth);
-  const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+  const yearStart = startOfYear(new Date(selectedYear, 0, 1));
+  const yearEnd = endOfYear(new Date(selectedYear, 0, 1));
+  const allWeeksOfYear = eachWeekOfInterval({ start: yearStart, end: yearEnd }, { weekStartsOn: 1 });
 
   const base = store.data.salaryConfig.baseSalary;
   const { iessAporteActive, saludConyugeActive, fondosReservaActive, overtimeRate50: rate50, overtimeRate100: rate100 } = store.data.salaryConfig;
-
-  // Weekly breakdown
-  const weeklyBreakdown = weeks.map((weekStart, i) => {
+  
+  // Weekly breakdown for ALL weeks of the year
+  const weeklyBreakdown = allWeeksOfYear.map((weekStart, i) => {
     const rule = applyRule45h(store.data.timeEntries, store.data.holidays, weekStart);
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     const holidayEntries = store.data.timeEntries.filter(e => {
@@ -61,10 +60,15 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
     };
   });
 
-  // Calculate totals for selected weeks or all
+  // Filter to only weeks that have data or are selected
+  const weeksWithData = weeklyBreakdown.filter(w => 
+    w.weekdayHours > 0 || w.totalExtra50 > 0 || w.totalExtra100 > 0 || selectedWeeks.includes(w.index)
+  );
+
+  // Calculate totals for selected weeks or all with data
   const activeWeeks = selectedWeeks.length > 0 
     ? weeklyBreakdown.filter((_, i) => selectedWeeks.includes(i))
-    : weeklyBreakdown;
+    : weeksWithData;
 
   const totalHours50 = activeWeeks.reduce((s, w) => s + w.totalExtra50, 0);
   const totalHours100 = activeWeeks.reduce((s, w) => s + w.totalExtra100, 0);
@@ -121,7 +125,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   };
 
   const selectAllWeeks = () => {
-    setSelectedWeeks(weeklyBreakdown.map((_, i) => i));
+    setSelectedWeeks(weeksWithData.map(w => w.index));
   };
 
   const clearWeeks = () => {
@@ -136,24 +140,18 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
           Pagos y Proyección
         </h2>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-          <button
-            onClick={() => setMonthOffset(o => o - 1)}
+          <select
+            value={selectedYear}
+            onChange={(e) => {
+              setSelectedYear(parseInt(e.target.value));
+              setSelectedWeeks([]);
+            }}
             className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
           >
-            ← Mes
-          </button>
-          <button
-            onClick={() => setMonthOffset(0)}
-            className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
-          >
-            Actual
-          </button>
-          <button
-            onClick={() => setMonthOffset(o => o + 1)}
-            className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
-          >
-            Mes →
-          </button>
+            <option value={2025}>2025</option>
+            <option value={2026}>2026</option>
+            <option value={2027}>2027</option>
+          </select>
           <button
             onClick={() => setShowConfig(!showConfig)}
             className="flex items-center gap-1 bg-slate-700/50 hover:bg-slate-600/50 px-3 py-2 rounded-lg text-sm transition ml-auto sm:ml-0"
@@ -304,7 +302,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
         <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
           <DollarSign size={20} className="text-emerald-400" />
-          Proyección - {format(selectedMonth, 'MMMM yyyy', { locale: es })}
+          Proyección - Año {selectedYear}
         </h3>
 
         {/* Week Selection Dropdown */}
@@ -317,7 +315,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
               <ListChecks size={18} className="text-blue-400" />
               <span className="text-sm text-white">
                 {selectedWeeks.length === 0 
-                  ? 'Seleccionar semanas para cobro' 
+                  ? 'Seleccionar semanas del año para cobro' 
                   : `${selectedWeeks.length} semana(s) seleccionada(s)`}
               </span>
             </div>
@@ -335,19 +333,19 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-b-lg p-3 space-y-2">
                   <div className="flex gap-2 mb-3">
                     <button onClick={selectAllWeeks} className="text-xs bg-blue-500/20 border border-blue-500/30 px-3 py-1.5 rounded text-blue-300 hover:bg-blue-500/30">
-                      ✓ Seleccionar Todas
+                      ✓ Seleccionar Todas con Datos
                     </button>
                     <button onClick={clearWeeks} className="text-xs bg-slate-700/30 px-3 py-1.5 rounded text-slate-400 hover:bg-slate-600/30">
                       ✗ Limpiar
                     </button>
                   </div>
                   
-                  <div className="space-y-1 max-h-64 overflow-y-auto">
-                    {weeklyBreakdown.map((week, i) => (
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
+                    {weeksWithData.map((week) => (
                       <label
-                        key={i}
+                        key={week.index}
                         className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition ${
-                          selectedWeeks.includes(i) 
+                          selectedWeeks.includes(week.index) 
                             ? 'bg-blue-500/10 border border-blue-500/30' 
                             : 'bg-slate-700/20 border border-transparent hover:bg-slate-700/40'
                         }`}
@@ -355,8 +353,8 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={selectedWeeks.includes(i)}
-                            onChange={() => toggleWeek(i)}
+                            checked={selectedWeeks.includes(week.index)}
+                            onChange={() => toggleWeek(week.index)}
                             className="w-4 h-4 rounded border-slate-500 accent-blue-500"
                           />
                           <div>
@@ -374,6 +372,11 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                         </div>
                       </label>
                     ))}
+                    {weeksWithData.length === 0 && (
+                      <p className="text-center text-slate-500 text-sm py-4">
+                        No hay semanas con datos registrados en {selectedYear}
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -386,18 +389,21 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
           <div className="mb-4 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
             <p className="text-xs text-blue-300 mb-2">Semanas seleccionadas:</p>
             <div className="flex flex-wrap gap-2">
-              {selectedWeeks.sort((a, b) => a - b).map(i => (
-                <span key={i} className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300">
-                  Sem {weeklyBreakdown[i].weekNumber} ({weeklyBreakdown[i].period})
-                </span>
-              ))}
+              {selectedWeeks.sort((a, b) => a - b).map(i => {
+                const week = weeklyBreakdown[i];
+                return (
+                  <span key={i} className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300">
+                    Sem {week.weekNumber} ({week.period})
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Weekly Details (Expandable) */}
         <div className="space-y-2 mb-6">
-          {(selectedWeeks.length > 0 ? weeklyBreakdown.filter((_, i) => selectedWeeks.includes(i)) : weeklyBreakdown).map((week) => {
+          {(selectedWeeks.length > 0 ? weeklyBreakdown.filter((_, i) => selectedWeeks.includes(i)) : weeksWithData).map((week) => {
             const i = week.index;
             return (
               <div key={i} className="bg-slate-700/30 rounded-lg overflow-hidden">
