@@ -15,6 +15,13 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   const [overtimeRate100, setOvertimeRate100] = useState(store.data.salaryConfig.overtimeRate100.toString());
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   
+  // Estados para formulario de bonos
+  const [showBonusForm, setShowBonusForm] = useState(false);
+  const [bonusName, setBonusName] = useState('');
+  const [bonusAmount, setBonusAmount] = useState('');
+  const [bonusBasedOnSalary, setBonusBasedOnSalary] = useState(false);
+  const [bonusPercentage, setBonusPercentage] = useState('');
+  
   // Usar el estado global del store
   const selectedWeeks = store.data.selectedWeeks;
   const selectedYear = store.data.selectedYear;
@@ -118,6 +125,30 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       overtimeRate100: parseFloat(overtimeRate100) || 0,
     });
     setShowConfig(false);
+  };
+
+  const handleSaveBonus = () => {
+    if (!bonusName) return;
+    
+    const newBonus = {
+      id: Date.now().toString(),
+      name: bonusName,
+      amount: parseFloat(bonusAmount) || 0,
+      active: true,
+      basedOnSalary: bonusBasedOnSalary,
+      percentage: parseFloat(bonusPercentage) || 0,
+      type: 'bonus' as const,
+      isSpecial: false,
+    };
+    
+    store.addBonus(newBonus);
+    
+    // Reset form
+    setBonusName('');
+    setBonusAmount('');
+    setBonusBasedOnSalary(false);
+    setBonusPercentage('');
+    setShowBonusForm(false);
   };
 
   // Calcular cuota según tipo de amortización
@@ -513,9 +544,88 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
         {/* Active Bonuses & Discounts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <h4 className="text-sm font-medium text-emerald-400 mb-2">Bonos Activos</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium text-emerald-400">Bonos Activos</h4>
+              <button
+                onClick={() => setShowBonusForm(!showBonusForm)}
+                className="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-2 py-1 rounded transition-colors"
+              >
+                + Agregar Bono
+              </button>
+            </div>
+            
+            {/* Formulario para agregar bono */}
+            <AnimatePresence>
+              {showBonusForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 overflow-hidden"
+                >
+                  <div className="bg-slate-700/30 rounded-lg p-3 space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Nombre del bono"
+                      value={bonusName}
+                      onChange={(e) => setBonusName(e.target.value)}
+                      className="w-full bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-sm text-white placeholder-slate-400"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        placeholder="Monto fijo"
+                        value={bonusAmount}
+                        onChange={(e) => setBonusAmount(e.target.value)}
+                        disabled={bonusBasedOnSalary}
+                        className="flex-1 bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-sm text-white placeholder-slate-400 disabled:opacity-50"
+                      />
+                      <label className="flex items-center gap-1 text-xs text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={bonusBasedOnSalary}
+                          onChange={(e) => setBonusBasedOnSalary(e.target.checked)}
+                          className="rounded"
+                        />
+                        % del sueldo
+                      </label>
+                    </div>
+                    {bonusBasedOnSalary && (
+                      <input
+                        type="number"
+                        placeholder="Porcentaje"
+                        value={bonusPercentage}
+                        onChange={(e) => setBonusPercentage(e.target.value)}
+                        className="w-full bg-slate-700/50 border border-slate-600 rounded px-2 py-1 text-sm text-white placeholder-slate-400"
+                      />
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveBonus}
+                        className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1 rounded text-sm transition-colors"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowBonusForm(false);
+                          setBonusName('');
+                          setBonusAmount('');
+                          setBonusBasedOnSalary(false);
+                          setBonusPercentage('');
+                        }}
+                        className="flex-1 bg-slate-600/30 hover:bg-slate-600/50 text-slate-400 px-3 py-1 rounded text-sm transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
             <div className="space-y-1">
-              {store.data.bonuses.filter(b => b.active && !b.isSpecial).map(b => (
+              {store.data.bonuses.filter(b => b.active && !b.isSpecial && b.name.toLowerCase() !== 'fondos de reserva').map(b => (
                 <div key={b.id} className="flex justify-between text-xs bg-emerald-500/10 rounded px-3 py-1">
                   <span className="text-slate-300">{b.name}</span>
                   <span className="text-emerald-400">
@@ -529,7 +639,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                   <span className="text-emerald-400">8.33% = {formatCurrency(fondosAmount)}</span>
                 </div>
               )}
-              {store.data.bonuses.filter(b => b.active && !b.isSpecial).length === 0 && !fondosReservaActive && (
+              {store.data.bonuses.filter(b => b.active && !b.isSpecial && b.name.toLowerCase() !== 'fondos de reserva').length === 0 && !fondosReservaActive && (
                 <p className="text-xs text-slate-500">Sin bonos activos</p>
               )}
             </div>
