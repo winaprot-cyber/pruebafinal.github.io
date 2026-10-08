@@ -10,6 +10,9 @@ interface FloatingPaymentsButtonProps {
 
 export default function FloatingPaymentsButton({ store }: FloatingPaymentsButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showExpensePayment, setShowExpensePayment] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<any>(null);
+  const [expensePaymentAmount, setExpensePaymentAmount] = useState('');
 
   const activeDebts = store.data.debts.filter(d => d.totalAmount - d.paidAmount > 0);
   const totalDebtRemaining = activeDebts.reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
@@ -35,6 +38,33 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
       progress,
       paymentsMade: newPaymentsMade,
     });
+  };
+
+  const openExpensePayment = (expense: any) => {
+    setSelectedExpense(expense);
+    setExpensePaymentAmount(expense.amount.toString());
+    setShowExpensePayment(true);
+  };
+
+  const handleExpensePayment = (expenseId: string, amount: number, isFull: boolean) => {
+    const expense = store.data.expenses.find(e => e.id === expenseId);
+    if (!expense) return;
+
+    if (isFull) {
+      // Pago total - eliminar el gasto
+      store.removeExpense(expenseId);
+    } else {
+      // Abono parcial - reducir el monto
+      const newAmount = expense.amount - amount;
+      if (newAmount <= 0) {
+        store.removeExpense(expenseId);
+      } else {
+        store.updateExpense(expenseId, { amount: newAmount });
+      }
+    }
+    setShowExpensePayment(false);
+    setSelectedExpense(null);
+    setExpensePaymentAmount('');
   };
 
   const totalItems = activeDebts.length + monthlyExpenses.length;
@@ -168,21 +198,95 @@ export default function FloatingPaymentsButton({ store }: FloatingPaymentsButton
                       <DollarSign size={16} />
                       Gastos Mensuales ({monthlyExpenses.length})
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {monthlyExpenses.map(expense => (
-                        <div key={expense.id} className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-white">{expense.name}</p>
-                            <p className="text-xs text-slate-400">{expense.category} • {expense.frequency}</p>
+                        <div key={expense.id} className="bg-slate-700/30 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-white">{expense.name}</p>
+                              <p className="text-xs text-slate-400">{expense.category} • {expense.frequency}</p>
+                            </div>
+                            <p className="text-sm font-bold text-orange-400">
+                              {formatCurrency(expense.amount)}
+                            </p>
                           </div>
-                          <p className="text-sm font-bold text-orange-400">
-                            {formatCurrency(expense.amount)}
-                          </p>
+                          
+                          {/* Botón de Pago */}
+                          <button
+                            onClick={() => openExpensePayment(expense)}
+                            className="w-full bg-orange-500/20 border border-orange-500/30 px-3 py-2 rounded-lg text-orange-300 text-xs hover:bg-orange-500/30 transition"
+                          >
+                            Pagar Gasto
+                          </button>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Pago de Gastos */}
+      <AnimatePresence>
+        {showExpensePayment && selectedExpense && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowExpensePayment(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">Pagar Gasto</h3>
+                <button
+                  onClick={() => setShowExpensePayment(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="bg-slate-700/30 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-white mb-1">{selectedExpense.name}</p>
+                <p className="text-xs text-slate-400 mb-2">{selectedExpense.category} • {selectedExpense.frequency}</p>
+                <p className="text-lg font-bold text-orange-400">{formatCurrency(selectedExpense.amount)}</p>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-sm text-slate-400 block mb-2">Monto a pagar</label>
+                <input
+                  type="number"
+                  value={expensePaymentAmount}
+                  onChange={(e) => setExpensePaymentAmount(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExpensePayment(selectedExpense.id, parseFloat(expensePaymentAmount) || 0, false)}
+                  className="flex-1 bg-blue-500/20 border border-blue-500/30 px-3 py-2 rounded-lg text-blue-300 text-sm hover:bg-blue-500/30 transition"
+                >
+                  Abonar
+                </button>
+                <button
+                  onClick={() => handleExpensePayment(selectedExpense.id, selectedExpense.amount, true)}
+                  className="flex-1 bg-emerald-500/20 border border-emerald-500/30 px-3 py-2 rounded-lg text-emerald-300 text-sm hover:bg-emerald-500/30 transition"
+                >
+                  <Check size={14} className="inline mr-1" />
+                  Pagar Total
+                </button>
               </div>
             </motion.div>
           </motion.div>

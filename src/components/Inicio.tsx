@@ -98,15 +98,37 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
     setShowHolidayForm(false);
   };
 
-  // Projection data for next weeks
+  // Projection data for next weeks - based on last 4 weeks statistics with 1% increment
+  const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+    const pastWeekStart = subWeeks(currentWeekStart, 4 - i);
+    const rule = applyRule45h(store.data.timeEntries, store.data.holidays, pastWeekStart);
+    return rule.weekdayHours + rule.totalExtra;
+  });
+  
+  const averageHours = last4Weeks.reduce((sum, h) => sum + h, 0) / 4;
+  const incrementFactor = 1.01; // 1% increment
+  
   const projectionData = Array.from({ length: 4 }, (_, i) => {
     const futureWeekStart = addWeeks(currentWeekStart, i + 1);
-    const futureWeekData = getWeeklyHours(store.data.timeEntries, futureWeekStart);
-    const totalHours = futureWeekData.reduce((s, d) => s + d.hours, 0);
     const weekNumber = getWeek(futureWeekStart, { weekStartsOn: 1 });
+    
+    // Check if there are holidays in this future week
+    const futureWeekEnd = endOfWeek(futureWeekStart, { weekStartsOn: 1 });
+    const holidaysInWeek = store.data.holidays.filter(h => {
+      const hDate = parseISO(h.date);
+      return hDate >= futureWeekStart && hDate <= futureWeekEnd;
+    });
+    
+    // Calculate projected hours with 1% increment per week
+    const projectedHours = averageHours * Math.pow(incrementFactor, i + 1);
+    
+    // Adjust for holidays (holidays reduce working hours)
+    const holidayAdjustment = holidaysInWeek.length * 8; // Assume 8h per holiday
+    const adjustedHours = Math.max(0, projectedHours - holidayAdjustment);
+    
     return {
       week: `Sem ${weekNumber}`,
-      horas: totalHours || 0,
+      horas: Math.round(adjustedHours * 10) / 10,
       proyeccion: 45,
     };
   });

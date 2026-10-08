@@ -805,9 +805,28 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                 <div>
                   <p className={`text-sm font-medium ${discount.active ? 'text-white' : 'text-slate-500'}`}>{discount.name}</p>
                   <p className="text-xs text-slate-400">
-                    {discount.basedOnSalary ? `${discount.percentage}% del sueldo = ${formatCurrency(base * discount.percentage / 100)}` : formatCurrency(discount.amount)}
-                    {discount.loanType && ` • ${discount.loanType}`}
-                    {discount.totalMonths && ` • Mes ${discount.currentMonth}/${discount.totalMonths}`}
+                    {(() => {
+                      // Si es un préstamo con tabla de amortización, mostrar el valor del próximo pago
+                      if (discount.loanType && discount.loanAmount && discount.totalMonths && discount.interestRate) {
+                        const nextPaymentNumber = (discount.paymentsMade || 0) + 1;
+                        const nextPaymentAmount = customInstallments[nextPaymentNumber] || calculateInstallment(discount, nextPaymentNumber);
+                        return (
+                          <>
+                            <span className="text-purple-400 font-semibold">Cuota #{nextPaymentNumber}: {formatCurrency(nextPaymentAmount)}</span>
+                            {` • ${discount.loanType}`}
+                            {` • ${discount.paymentsMade || 0}/${discount.totalMonths} pagos`}
+                          </>
+                        );
+                      }
+                      // Si no es un préstamo, mostrar el monto normal
+                      return (
+                        <>
+                          {discount.basedOnSalary ? `${discount.percentage}% del sueldo = ${formatCurrency(base * discount.percentage / 100)}` : formatCurrency(discount.amount)}
+                          {discount.loanType && ` • ${discount.loanType}`}
+                          {discount.totalMonths && ` • Mes ${discount.currentMonth}/${discount.totalMonths}`}
+                        </>
+                      );
+                    })()}
                   </p>
                   {/* Barra de progreso para préstamos */}
                   {discount.loanType && discount.totalMonths && (

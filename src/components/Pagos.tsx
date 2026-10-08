@@ -408,6 +408,9 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
         <div className="space-y-2 mb-6">
           {(selectedWeeks.length > 0 ? weeklyBreakdown.filter((_, i) => selectedWeeks.includes(i)) : weeksWithData).map((week) => {
             const i = week.index;
+            const totalExtraPayment = week.payment.total;
+            const hasHolidays = week.holidayHours > 0;
+            
             return (
               <div key={i} className="bg-slate-700/30 rounded-lg overflow-hidden">
                 <button
@@ -421,9 +424,14 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                     <span className="text-sm text-white">{week.period}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs ml-0 sm:ml-0">
-                    <span className="text-yellow-300">50%: {week.totalExtra50.toFixed(1)}h</span>
-                    <span className="text-red-300">100%: {week.totalExtra100.toFixed(1)}h</span>
-                    <span className="text-emerald-300">Fer: {week.holidayHours.toFixed(1)}h</span>
+                    <span className="text-emerald-400 font-semibold">
+                      Extras: {formatCurrency(totalExtraPayment)}
+                    </span>
+                    {hasHolidays && (
+                      <span className="text-yellow-300">
+                        🎉 Fer: {week.holidayHours.toFixed(1)}h
+                      </span>
+                    )}
                     {expandedWeek === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </div>
                 </button>
