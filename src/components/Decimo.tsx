@@ -10,7 +10,6 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [baseSalary, setBaseSalary] = useState('');
   const [hours50, setHours50] = useState('');
   const [hours100, setHours100] = useState('');
@@ -18,10 +17,28 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
 
   const base = store.data.salaryConfig.baseSalary;
 
-  // Generate 12 months from December to November
+  // Calcular el año base del periodo del décimo
+  // El periodo va de Diciembre a Noviembre
+  // Si estamos entre Enero y Noviembre, el periodo es Dic(año-1) - Nov(año)
+  // Si estamos en Diciembre, el periodo es Dic(año) - Nov(año+1)
+  const getCurrentDecimoPeriod = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth(); // 0-11
+    const currentYear = today.getFullYear();
+    
+    // Si estamos en Diciembre (11), el periodo empieza este año
+    // Si estamos entre Enero (0) y Noviembre (10), el periodo empezó el año anterior
+    const periodStartYear = currentMonth === 11 ? currentYear : currentYear - 1;
+    
+    return periodStartYear;
+  };
+
+  const periodStartYear = getCurrentDecimoPeriod();
+
+  // Generate 12 months from December (periodStartYear) to November (periodStartYear + 1)
   const months = Array.from({ length: 12 }, (_, i) => {
     const month = (11 + i) % 12; // Dec=11, Jan=0, Feb=1, ...
-    const year = i < 1 ? selectedYear - 1 : selectedYear;
+    const year = i < 1 ? periodStartYear : periodStartYear + 1;
     const entry = store.data.decimoEntries.find(e => e.month === month && e.year === year);
     return {
       month,
@@ -32,7 +49,14 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   });
 
   // Calculate totals
-  const totalDecimo = store.data.decimoEntries.reduce((sum, e) => sum + e.total, 0);
+  const periodEntries = store.data.decimoEntries.filter(e => {
+    // Filtrar solo los entries del periodo actual
+    const isDecember = e.month === 11 && e.year === periodStartYear;
+    const isJanToNov = e.month >= 0 && e.month <= 10 && e.year === periodStartYear + 1;
+    return isDecember || isJanToNov;
+  });
+
+  const totalDecimo = periodEntries.reduce((sum, e) => sum + e.total, 0);
   const monthlyDecimo = totalDecimo / 12;
 
   // Chart data
@@ -94,7 +118,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
     const entry: DecimoEntry = {
       id: editingId || generateId(),
       month: selectedMonth,
-      year: selectedYear,
+      year: selectedMonth === 11 ? periodStartYear : periodStartYear + 1,
       baseSalary: baseSal,
       overtimeHours50: h50,
       overtimeHours100: h100,
@@ -106,17 +130,6 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
 
   const handleDelete = (id: string) => {
     if (confirm('¿Estás seguro de eliminar este registro?')) {
-      store.addDecimoEntry({
-        id,
-        month: 0,
-        year: 0,
-        baseSalary: 0,
-        overtimeHours50: 0,
-        overtimeHours100: 0,
-        total: 0,
-      });
-      // Actually remove by setting to zero (the store replaces entries with same month/year)
-      // We need a proper delete function, but for now we'll use a workaround
       const currentEntries = store.data.decimoEntries.filter(e => e.id !== id);
       store.updateData({ decimoEntries: currentEntries });
     }
@@ -134,7 +147,6 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   const startEdit = (entry: DecimoEntry) => {
     setEditingId(entry.id);
     setSelectedMonth(entry.month);
-    setSelectedYear(entry.year);
     setBaseSalary(entry.baseSalary.toString());
     setHours50(entry.overtimeHours50.toString());
     setHours100(entry.overtimeHours100.toString());
@@ -142,16 +154,21 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
     setShowForm(true);
   };
 
-  const filledMonths = store.data.decimoEntries.length;
+  const filledMonths = periodEntries.length;
   const completionPercentage = (filledMonths / 12) * 100;
 
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <Calendar size={24} className="text-cyan-400" />
-          Décimo Tercero
-        </h2>
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <Calendar size={24} className="text-cyan-400" />
+            Décimo Tercero
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Periodo: Diciembre {periodStartYear} - Noviembre {periodStartYear + 1}
+          </p>
+        </div>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 rounded-lg text-cyan-300 text-sm w-full sm:w-auto justify-center"
@@ -203,19 +220,16 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
                 onChange={e => setSelectedMonth(parseInt(e.target.value))}
                 className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
               >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i} value={i}>{getMonthName(i)}</option>
-                ))}
+                {Array.from({ length: 12 }, (_, i) => {
+                  const month = (11 + i) % 12;
+                  const year = i < 1 ? periodStartYear : periodStartYear + 1;
+                  return (
+                    <option key={i} value={month}>
+                      {getMonthName(month)} {year}
+                    </option>
+                  );
+                })}
               </select>
-            </div>
-            <div>
-              <label className="text-xs md:text-sm text-slate-400 block mb-1">Año</label>
-              <input
-                type="number"
-                value={selectedYear}
-                onChange={e => setSelectedYear(parseInt(e.target.value))}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
-              />
             </div>
             <div>
               <label className="text-xs md:text-sm text-slate-400 block mb-1">Sueldo Base</label>
@@ -247,8 +261,8 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
                 className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
               />
             </div>
-            <div>
-              <label className="text-xs md:text-sm text-slate-400 block mb-1">Monto Total (Manual)</label>
+            <div className="md:col-span-2">
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Monto Total (Manual - Opcional)</label>
               <input
                 type="number"
                 step="0.01"
@@ -291,7 +305,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
 
       {/* Chart */}
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold mb-4">Progresión Mensual (Dic - Nov)</h3>
+        <h3 className="text-base md:text-lg font-semibold mb-4">Progresión Mensual (Dic {periodStartYear} - Nov {periodStartYear + 1})</h3>
         <div className="h-48 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
@@ -364,10 +378,11 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
       {/* Info */}
       <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl p-4">
         <p className="text-xs text-slate-500">
+          <strong className="text-slate-400">Periodo anual:</strong> El décimo se calcula de Diciembre a Noviembre. 
+          Cuando el año cambie a {periodStartYear + 2}, automáticamente se tomará el periodo Diciembre {periodStartYear + 1} - Noviembre {periodStartYear + 2}.
+          <br /><br />
           <strong className="text-slate-400">Regla automática:</strong> Cada 1 de cada mes se calcula automáticamente 
-          el décimo usando el sueldo base + total de horas extras del mes anterior. Los valores pueden ser editados manualmente.
-          El periodo va de Diciembre a Noviembre (12 meses). El valor a recibir es el total acumulado dividido entre 12.
-          Puedes ingresar el monto total manualmente si deseas sobrescribir el cálculo automático.
+          el décimo usando el sueldo base + total de horas extras del mes anterior.
         </p>
       </div>
     </div>

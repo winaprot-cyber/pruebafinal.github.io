@@ -9,6 +9,7 @@ import Pagos from './components/Pagos';
 import Finanzas from './components/Finanzas';
 import Balance from './components/Balance';
 import Decimo from './components/Decimo';
+import FloatingPaymentsButton from './components/FloatingPaymentsButton';
 
 const tabs = [
   { id: 'inicio', label: 'Inicio', icon: Home },
@@ -140,6 +141,9 @@ export default function App() {
           Control Biométrico v2.0 — Creado por Hugo León — Modo Offline Activo
         </p>
       </footer>
+
+      {/* Floating Payments Button */}
+      <FloatingPaymentsButton store={store} />
     </div>
   );
 }

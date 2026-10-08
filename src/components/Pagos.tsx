@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, ChevronDown, ChevronUp, Settings, DollarSign, Calendar, Shield, Heart, PiggyBank, ListChecks } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, parseISO, addWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, parseISO, addWeeks, getWeek, startOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { applyRule45h, calculateBonuses, calculateDiscounts, calculateBaseIngreso, calculateSpecialDiscounts, calculateSpecialBonuses, formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -35,6 +35,9 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       return e.isHoliday && d >= weekStart && d <= weekEnd;
     });
     
+    // Get week number of the year
+    const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
+    
     // Calculate payment using custom rates or default formula
     const hourlyRate = base / 240;
     const customRate50 = rate50 > 0 ? rate50 : hourlyRate * 1.5;
@@ -48,11 +51,12 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       index: i,
       weekStart,
       weekEnd,
+      weekNumber,
       ...rule,
       payment: { payment50, payment100, total: paymentTotal, hourlyRate },
       holidays: holidayEntries,
-      label: `Sem ${i + 1}: ${format(weekStart, 'dd MMM', { locale: es })} - ${format(weekEnd, 'dd MMM', { locale: es })}`,
-      shortLabel: `Sem ${i + 1}`,
+      label: `Sem ${weekNumber}: ${format(weekStart, 'dd MMM', { locale: es })} - ${format(weekEnd, 'dd MMM', { locale: es })}`,
+      shortLabel: `Sem ${weekNumber}`,
       period: `${format(weekStart, 'dd/MM', { locale: es })} - ${format(weekEnd, 'dd/MM', { locale: es })}`,
     };
   });
@@ -357,7 +361,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                           />
                           <div>
                             <p className="text-sm font-medium text-white">
-                              Semana {i + 1}
+                              Semana {week.weekNumber}
                             </p>
                             <p className="text-xs text-slate-400">
                               {week.period}
@@ -384,7 +388,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
             <div className="flex flex-wrap gap-2">
               {selectedWeeks.sort((a, b) => a - b).map(i => (
                 <span key={i} className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300">
-                  Sem {i + 1} ({weeklyBreakdown[i].period})
+                  Sem {weeklyBreakdown[i].weekNumber} ({weeklyBreakdown[i].period})
                 </span>
               ))}
             </div>
@@ -403,7 +407,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-blue-400 bg-blue-500/20 px-2 py-1 rounded">
-                      Sem {i + 1}
+                      Sem {week.weekNumber}
                     </span>
                     <span className="text-sm text-white">{week.period}</span>
                   </div>

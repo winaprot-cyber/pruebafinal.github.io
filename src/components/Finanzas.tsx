@@ -52,6 +52,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
 
   const handleSaveDiscount = () => {
     if (!discountName) return;
+    const existingDiscount = editingDiscount ? store.data.discounts.find(d => d.id === editingDiscount) : null;
     const discount: Discount = {
       id: editingDiscount || generateId(),
       name: discountName,
@@ -63,8 +64,10 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       isSpecial: false,
       loanType: discountLoanType,
       totalMonths: parseInt(discountTotalMonths) || undefined,
-      currentMonth: 1,
+      currentMonth: existingDiscount?.currentMonth || 1,
       fixedPayment: discountFixedPayment,
+      monthlyPaymentAmount: parseFloat(discountAmount) || 0,
+      paymentsMade: existingDiscount?.paymentsMade || 0,
     };
     if (editingDiscount) {
       store.updateDiscount(editingDiscount, discount);
@@ -106,7 +109,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   const startEditDiscount = (d: Discount) => {
     setEditingDiscount(d.id);
     setDiscountName(d.name);
-    setDiscountAmount(d.amount.toString());
+    setDiscountAmount(d.monthlyPaymentAmount?.toString() || d.amount.toString());
     setDiscountBasedOnSalary(d.basedOnSalary);
     setDiscountPercentage(d.percentage.toString());
     setDiscountLoanType(d.loanType || '');
@@ -434,6 +437,23 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     Pago fijo manual
                   </label>
                 </div>
+                {/* Mostrar campo de pago mensual si es préstamo quirografario con pago fijo */}
+                {discountLoanType === 'quirografario' && discountFixedPayment && discountTotalMonths && (
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Pago Mensual ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Monto mensual"
+                      value={discountAmount}
+                      onChange={(e) => setDiscountAmount(e.target.value)}
+                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      {discountTotalMonths} pagos de {formatCurrency(parseFloat(discountAmount) || 0)} = {formatCurrency((parseFloat(discountAmount) || 0) * parseInt(discountTotalMonths))}
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={handleSaveDiscount} className="bg-red-500/20 border border-red-500/30 px-3 py-1 rounded text-red-300 text-sm">
                     {editingDiscount ? 'Actualizar' : 'Guardar'}
@@ -467,8 +487,8 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                         type="number"
                         min="0"
                         max={discount.totalMonths}
-                        value={discount.currentMonth || 0}
-                        onChange={(e) => store.updateDiscount(discount.id, { currentMonth: parseInt(e.target.value) || 0 })}
+                        value={discount.paymentsMade || 0}
+                        onChange={(e) => store.updateDiscount(discount.id, { paymentsMade: parseInt(e.target.value) || 0 })}
                         className="w-16 bg-slate-700/50 border border-slate-600 rounded px-2 py-0.5 text-white text-xs"
                       />
                       <span className="text-xs text-slate-500">de {discount.totalMonths}</span>

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Camera, Calendar, Plus, Save, X, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateHours, getWeeklyHours, applyRule45h, generateId } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -103,8 +103,9 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
     const futureWeekStart = addWeeks(currentWeekStart, i + 1);
     const futureWeekData = getWeeklyHours(store.data.timeEntries, futureWeekStart);
     const totalHours = futureWeekData.reduce((s, d) => s + d.hours, 0);
+    const weekNumber = getWeek(futureWeekStart, { weekStartsOn: 1 });
     return {
-      week: `Sem ${i + 2}`,
+      week: `Sem ${weekNumber}`,
       horas: totalHours || 0,
       proyeccion: 45,
     };

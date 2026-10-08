@@ -46,6 +46,8 @@ export interface Discount {
   totalMonths?: number;
   currentMonth?: number;
   fixedPayment?: boolean;
+  monthlyPaymentAmount?: number; // Monto del pago mensual para préstamos quirografarios
+  paymentsMade?: number; // Número de pagos realizados
 }
 
 export interface Income {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PieChart as PieIcon, Plus, Edit2, Trash2, CreditCard, Share2, TrendingUp, TrendingDown, DollarSign, X, Check, Camera, Shield, Heart, PiggyBank } from 'lucide-react';
 import { formatCurrency, generateId, calculateBonuses, calculateDiscounts, calculateBaseIngreso, calculateSpecialDiscounts, calculateSpecialBonuses } from '../utils/calculations';
+import { shareAsImageWhatsApp } from '../utils/shareImage';
 import type { useStore } from '../store/useStore';
 import type { Income, Expense, Debt } from '../store/useStore';
 
@@ -178,30 +179,16 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
     }
   };
 
-  const sharePaymentWhatsApp = (type: string, item: any, amount: number, photo?: string) => {
-    let text = `*Control Biométrico - Pago Realizado*\n\n`;
-    text += `Tipo: ${type}\n`;
-    text += `Concepto: ${item.name}\n`;
-    text += `Monto pagado: ${formatCurrency(amount)}\n`;
-    text += `Fecha: ${new Date().toLocaleDateString('es-EC')}\n`;
-    
-    if ('progress' in item) {
-      text += `Progreso: ${item.progress.toFixed(1)}%\n`;
-      text += `Pagos realizados: ${item.paymentsMade}/${item.totalPayments || '?'}\n`;
-      text += `Restante: ${formatCurrency(item.totalAmount - item.paidAmount - amount)}\n`;
-    }
-
-    if (photo) {
-      // For photo sharing, we'll open WhatsApp with text and suggest attaching photo
-      text += `\n📷 Foto adjunta del comprobante`;
-    }
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  const sharePaymentWhatsApp = async (type: string, item: any, amount: number, photo?: string) => {
+    // Compartir en modo foto
+    const elementId = `payment-receipt-${item.id}`;
+    await shareAsImageWhatsApp(elementId, `pago-${item.name}`);
   };
 
-  const shareWhatsApp = (type: string, itemData: any) => {
-    const text = `*Control Biométrico - ${type}*\n\n${JSON.stringify(itemData, null, 2)}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  const shareWhatsApp = async (type: string, itemData: any) => {
+    // Compartir en modo foto
+    const elementId = `share-item-${itemData.id}`;
+    await shareAsImageWhatsApp(elementId, `${type.toLowerCase()}-${itemData.name}`);
   };
 
   const startEditDebt = (debt: Debt) => {
@@ -532,8 +519,56 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
               </div>
               <button onClick={() => { sharePaymentWhatsApp('Deuda', selectedDebt, parseFloat(paymentAmount) || selectedDebt.monthlyPayment, paymentPhoto); }}
                 className="w-full flex items-center justify-center gap-2 bg-green-500/20 border border-green-500/30 px-3 py-2 rounded-lg text-green-300 text-sm">
-                <Share2 size={14} /> Compartir por WhatsApp
+                <Share2 size={14} /> Compartir por WhatsApp (Foto)
               </button>
+              
+              {/* Hidden receipt for image capture */}
+              <div id={`payment-receipt-${selectedDebt.id}`} className="hidden">
+                <div className="bg-slate-800 p-6 rounded-xl text-white" style={{ width: '400px' }}>
+                  <div className="text-center mb-4">
+                    <h2 className="text-xl font-bold text-blue-400">Control Biométrico</h2>
+                    <p className="text-sm text-slate-400">Comprobante de Pago</p>
+                  </div>
+                  <div className="border-t border-slate-700 pt-4 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Concepto:</span>
+                      <span className="font-medium">{selectedDebt.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Tipo:</span>
+                      <span>{selectedDebt.type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Monto pagado:</span>
+                      <span className="text-emerald-400 font-bold">{formatCurrency(parseFloat(paymentAmount) || selectedDebt.monthlyPayment)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Fecha:</span>
+                      <span>{new Date().toLocaleDateString('es-EC')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Progreso:</span>
+                      <span>{selectedDebt.progress.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Pagos:</span>
+                      <span>{selectedDebt.paymentsMade}/{selectedDebt.totalPayments || '?'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Restante:</span>
+                      <span className="text-red-400">{formatCurrency(selectedDebt.totalAmount - selectedDebt.paidAmount)}</span>
+                    </div>
+                  </div>
+                  {paymentPhoto && (
+                    <div className="mt-4">
+                      <img src={paymentPhoto} alt="Comprobante" className="w-full rounded-lg" />
+                    </div>
+                  )}
+                  <div className="border-t border-slate-700 mt-4 pt-4 text-center text-xs text-slate-500">
+                    by Hugo León
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

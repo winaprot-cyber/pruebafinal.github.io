@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FileText, TrendingDown, Calendar } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, parseISO, startOfMonth, endOfMonth, eachWeekOfInterval, addWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, parseISO, startOfMonth, endOfMonth, eachWeekOfInterval, addWeeks, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { applyRule45h, formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -22,8 +22,9 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
   // Weekly data
   const weeklyData = weeks.map((weekStart, i) => {
     const rule = applyRule45h(store.data.timeEntries, store.data.holidays, weekStart);
+    const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
     return {
-      name: `Sem ${i + 1}`,
+      name: `Sem ${weekNumber}`,
       horas: rule.weekdayHours,
       extra50: rule.totalExtra50,
       extra100: rule.totalExtra100,
