@@ -282,10 +282,17 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       photo: loanPaymentPhoto || undefined,
     };
 
+    console.log('Guardando pago:', payment);
     store.addLoanPayment(selectedDiscountForPayment.id, payment);
+    console.log('Pago guardado exitosamente');
+    
     setShowLoanPaymentModal(false);
+    setSelectedDiscountForPayment(null);
     setLoanPaymentAmount('');
+    setLoanPaymentDate(new Date().toISOString().split('T')[0]);
     setLoanPaymentPhoto('');
+    
+    alert('✅ Pago registrado exitosamente');
   };
 
   const handleDeleteLoanPayment = (discountId: string, paymentId: string) => {
@@ -802,7 +809,8 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     {discount.loanType && ` • ${discount.loanType}`}
                     {discount.totalMonths && ` • Mes ${discount.currentMonth}/${discount.totalMonths}`}
                   </p>
-                  {discount.loanType === 'quirografario' && discount.totalMonths && (
+                  {/* Barra de progreso para préstamos */}
+                  {discount.loanType && discount.totalMonths && (
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -826,55 +834,13 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                               📊 Tabla
                             </button>
                           )}
-                          <button
-                            onClick={() => openLoanPaymentModal(discount)}
-                            className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 hover:bg-blue-500/30"
-                          >
-                            + Registrar Pago
-                          </button>
                         </div>
                       </div>
-                      
-                      {/* Lista de pagos individuales */}
-                      {discount.loanPayments && discount.loanPayments.length > 0 && (
-                        <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
-                          {discount.loanPayments.map((payment) => (
-                            <div key={payment.id}>
-                              <div className="flex items-center justify-between bg-slate-700/30 rounded px-2 py-1 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-blue-400 font-bold">#{payment.paymentNumber}</span>
-                                  <span className="text-white">{formatCurrency(payment.amount)}</span>
-                                  <span className="text-slate-500">{new Date(payment.date).toLocaleDateString('es-EC')}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {payment.photo && (
-                                    <span className="text-green-400" title="Con foto">📷</span>
-                                  )}
-                                  <button
-                                    onClick={() => shareLoanPaymentWhatsApp(payment, discount)}
-                                    className="text-green-400 hover:text-green-300"
-                                    title="Compartir"
-                                  >
-                                    <Share2 size={12} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteLoanPayment(discount.id, payment.id)}
-                                    className="text-red-400 hover:text-red-300"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
                   
-                  {/* Lista de pagos individuales para todos los descuentos */}
-                  {discount.loanPayments && discount.loanPayments.length > 0 && !discount.loanType && (
+                  {/* Lista de pagos individuales para TODOS los descuentos */}
+                  {discount.loanPayments && discount.loanPayments.length > 0 && (
                     <div className="mt-3 space-y-2">
                       <p className="text-xs text-slate-400 font-medium">Pagos registrados:</p>
                       <div className="space-y-1 max-h-40 overflow-y-auto">
