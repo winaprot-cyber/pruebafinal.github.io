@@ -74,6 +74,8 @@ export interface Debt {
   frequency: 'monthly' | 'once';
   paidAmount: number;
   progress: number;
+  paymentsMade: number; // Número de pagos realizados
+  totalPayments?: number; // Total de pagos esperados
 }
 
 export interface DecimoEntry {
@@ -92,6 +94,8 @@ export interface SalaryConfig {
   iessAporteActive: boolean;
   saludConyugeActive: boolean;
   fondosReservaActive: boolean;
+  overtimeRate50: number; // Costo por hora extra al 50%
+  overtimeRate100: number; // Costo por hora extra al 100%
 }
 
 export interface PaymentPeriod {
@@ -132,6 +136,8 @@ const defaultData: AppData = {
     iessAporteActive: true,
     saludConyugeActive: false,
     fondosReservaActive: false,
+    overtimeRate50: 0,
+    overtimeRate100: 0,
   },
   paymentPeriods: [],
 };

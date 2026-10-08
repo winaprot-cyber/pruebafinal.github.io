@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Edit2, Save, TrendingUp } from 'lucide-react';
+import { Calendar, Plus, Edit2, Save, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { formatCurrency, getMonthName, generateId, calculateOvertimePayment } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -14,6 +14,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   const [baseSalary, setBaseSalary] = useState('');
   const [hours50, setHours50] = useState('');
   const [hours100, setHours100] = useState('');
+  const [totalAmount, setTotalAmount] = useState('');
 
   const base = store.data.salaryConfig.baseSalary;
 
@@ -81,18 +82,44 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   }, []);
 
   const handleSave = () => {
+    const baseSal = parseFloat(baseSalary) || base;
+    const h50 = parseFloat(hours50) || 0;
+    const h100 = parseFloat(hours100) || 0;
+    
+    // Calculate total from hours or use manual total
+    let calculatedTotal = baseSal + calculateOvertimePayment(h50, h100, baseSal).total;
+    const manualTotal = parseFloat(totalAmount);
+    const finalTotal = manualTotal > 0 ? manualTotal : calculatedTotal;
+
     const entry: DecimoEntry = {
       id: editingId || generateId(),
       month: selectedMonth,
       year: selectedYear,
-      baseSalary: parseFloat(baseSalary) || base,
-      overtimeHours50: parseFloat(hours50) || 0,
-      overtimeHours100: parseFloat(hours100) || 0,
-      total: (parseFloat(baseSalary) || base) + 
-        calculateOvertimePayment(parseFloat(hours50) || 0, parseFloat(hours100) || 0, parseFloat(baseSalary) || base).total,
+      baseSalary: baseSal,
+      overtimeHours50: h50,
+      overtimeHours100: h100,
+      total: finalTotal,
     };
     store.addDecimoEntry(entry);
     resetForm();
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('¿Estás seguro de eliminar este registro?')) {
+      store.addDecimoEntry({
+        id,
+        month: 0,
+        year: 0,
+        baseSalary: 0,
+        overtimeHours50: 0,
+        overtimeHours100: 0,
+        total: 0,
+      });
+      // Actually remove by setting to zero (the store replaces entries with same month/year)
+      // We need a proper delete function, but for now we'll use a workaround
+      const currentEntries = store.data.decimoEntries.filter(e => e.id !== id);
+      store.updateData({ decimoEntries: currentEntries });
+    }
   };
 
   const resetForm = () => {
@@ -101,6 +128,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
     setBaseSalary('');
     setHours50('');
     setHours100('');
+    setTotalAmount('');
   };
 
   const startEdit = (entry: DecimoEntry) => {
@@ -110,6 +138,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
     setBaseSalary(entry.baseSalary.toString());
     setHours50(entry.overtimeHours50.toString());
     setHours100(entry.overtimeHours100.toString());
+    setTotalAmount(entry.total.toString());
     setShowForm(true);
   };
 
@@ -117,17 +146,17 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
   const completionPercentage = (filledMonths / 12) * 100;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
           <Calendar size={24} className="text-cyan-400" />
           Décimo Tercero
         </h2>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 rounded-lg text-cyan-300 text-sm"
+          className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 rounded-lg text-cyan-300 text-sm w-full sm:w-auto justify-center"
         >
-          <Plus size={14} /> Ingresar Manual
+          <Plus size={14} /> Ingresar / Editar
         </button>
       </div>
 
@@ -135,11 +164,11 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-cyan-500/20 to-blue-600/10 border border-cyan-500/30 rounded-xl p-6 text-center"
+        className="bg-gradient-to-br from-cyan-500/20 to-blue-600/10 border border-cyan-500/30 rounded-xl p-4 md:p-6 text-center"
       >
-        <p className="text-sm text-cyan-300 mb-1">Total a Recibir (Acumulado ÷ 12)</p>
-        <p className="text-5xl font-bold text-white mb-2">{formatCurrency(monthlyDecimo)}</p>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs md:text-sm text-cyan-300 mb-1">Total a Recibir (Acumulado ÷ 12)</p>
+        <p className="text-3xl md:text-5xl font-bold text-white mb-2">{formatCurrency(monthlyDecimo)}</p>
+        <p className="text-xs md:text-sm text-slate-400">
           Total acumulado: {formatCurrency(totalDecimo)} de 12 meses
         </p>
         <div className="mt-4 max-w-md mx-auto">
@@ -163,12 +192,12 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+          className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold mb-4">{editingId ? 'Editar' : 'Ingresar'} Décimo</h3>
+          <h3 className="text-base md:text-lg font-semibold mb-4">{editingId ? 'Editar' : 'Ingresar'} Décimo</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Mes</label>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Mes</label>
               <select
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(parseInt(e.target.value))}
@@ -180,7 +209,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
               </select>
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Año</label>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Año</label>
               <input
                 type="number"
                 value={selectedYear}
@@ -189,7 +218,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Sueldo Base</label>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Sueldo Base</label>
               <input
                 type="number"
                 value={baseSalary}
@@ -199,7 +228,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Horas Extra 50%</label>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Horas Extra 50%</label>
               <input
                 type="number"
                 step="0.5"
@@ -209,7 +238,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Horas Extra 100%</label>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Horas Extra 100%</label>
               <input
                 type="number"
                 step="0.5"
@@ -218,22 +247,39 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
                 className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
               />
             </div>
-            <div className="flex items-end">
-              <div className="bg-slate-700/30 rounded-lg px-4 py-2 w-full">
-                <p className="text-xs text-slate-400">Total del mes</p>
-                <p className="text-lg font-bold text-cyan-400">
-                  {formatCurrency(
-                    (parseFloat(baseSalary) || base) +
-                    calculateOvertimePayment(
-                      parseFloat(hours50) || 0,
-                      parseFloat(hours100) || 0,
-                      parseFloat(baseSalary) || base
-                    ).total
-                  )}
-                </p>
-              </div>
+            <div>
+              <label className="text-xs md:text-sm text-slate-400 block mb-1">Monto Total (Manual)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={totalAmount}
+                onChange={e => setTotalAmount(e.target.value)}
+                placeholder="Dejar vacío para auto-calcular"
+                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
+              />
+              <p className="text-xs text-slate-500 mt-1">Si se ingresa, reemplaza el cálculo automático</p>
             </div>
           </div>
+          
+          <div className="bg-slate-700/30 rounded-lg px-4 py-2 mt-4">
+            <p className="text-xs text-slate-400">Total calculado (auto)</p>
+            <p className="text-lg font-bold text-cyan-400">
+              {formatCurrency(
+                (parseFloat(baseSalary) || base) +
+                calculateOvertimePayment(
+                  parseFloat(hours50) || 0,
+                  parseFloat(hours100) || 0,
+                  parseFloat(baseSalary) || base
+                ).total
+              )}
+            </p>
+            {totalAmount && (
+              <p className="text-xs text-yellow-400 mt-1">
+                Total manual: {formatCurrency(parseFloat(totalAmount) || 0)}
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-2 mt-4">
             <button onClick={handleSave} className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-4 py-2 rounded-lg text-cyan-300 text-sm">
               <Save size={14} /> {editingId ? 'Actualizar' : 'Guardar'}
@@ -244,9 +290,9 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
       )}
 
       {/* Chart */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Progresión Mensual (Dic - Nov)</h3>
-        <div className="h-64">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4">Progresión Mensual (Dic - Nov)</h3>
+        <div className="h-48 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -257,8 +303,8 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="h-48 mt-4">
-          <p className="text-sm text-slate-400 mb-2">Acumulado</p>
+        <div className="h-36 md:h-48 mt-4">
+          <p className="text-xs md:text-sm text-slate-400 mb-2">Acumulado</p>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -272,8 +318,8 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
       </div>
 
       {/* Monthly Detail */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Detalle por Mes</h3>
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4">Detalle por Mes</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {months.map((m, i) => (
             <motion.div
@@ -290,14 +336,23 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
               <p className="text-xs text-slate-400">{m.label}</p>
               {m.entry ? (
                 <>
-                  <p className="text-lg font-bold text-white">{formatCurrency(m.entry.total)}</p>
+                  <p className="text-base md:text-lg font-bold text-white">{formatCurrency(m.entry.total)}</p>
                   <p className="text-xs text-slate-500">Base: {formatCurrency(m.entry.baseSalary)}</p>
+                  <div className="flex gap-2 mt-2">
                     <button
-                    onClick={() => m.entry && startEdit(m.entry)}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 mt-1 flex items-center gap-1"
-                  >
-                    <Edit2 size={10} /> Editar
-                  </button>                </>
+                      onClick={() => startEdit(m.entry!)}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      <Edit2 size={10} /> Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.entry!.id)}
+                      className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                    >
+                      <Trash2 size={10} /> Eliminar
+                    </button>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm text-slate-600">Sin registrar</p>
               )}
@@ -312,6 +367,7 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
           <strong className="text-slate-400">Regla automática:</strong> Cada 1 de cada mes se calcula automáticamente 
           el décimo usando el sueldo base + total de horas extras del mes anterior. Los valores pueden ser editados manualmente.
           El periodo va de Diciembre a Noviembre (12 meses). El valor a recibir es el total acumulado dividido entre 12.
+          Puedes ingresar el monto total manualmente si deseas sobrescribir el cálculo automático.
         </p>
       </div>
     </div>

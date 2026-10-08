@@ -460,6 +460,20 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     {discount.loanType && ` • ${discount.loanType}`}
                     {discount.totalMonths && ` • Mes ${discount.currentMonth}/${discount.totalMonths}`}
                   </p>
+                  {discount.loanType === 'quirografario' && discount.totalMonths && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <label className="text-xs text-slate-400">Pagos realizados:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={discount.totalMonths}
+                        value={discount.currentMonth || 0}
+                        onChange={(e) => store.updateDiscount(discount.id, { currentMonth: parseInt(e.target.value) || 0 })}
+                        className="w-16 bg-slate-700/50 border border-slate-600 rounded px-2 py-0.5 text-white text-xs"
+                      />
+                      <span className="text-xs text-slate-500">de {discount.totalMonths}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
