@@ -32,6 +32,15 @@ export interface Bonus {
   specialType?: 'fondos_reserva';
 }
 
+export interface LoanPayment {
+  id: string;
+  discountId: string;
+  paymentNumber: number;
+  amount: number;
+  date: string;
+  photo?: string;
+}
+
 export interface Discount {
   id: string;
   name: string;
@@ -48,6 +57,7 @@ export interface Discount {
   fixedPayment?: boolean;
   monthlyPaymentAmount?: number; // Monto del pago mensual para préstamos quirografarios
   paymentsMade?: number; // Número de pagos realizados
+  loanPayments?: LoanPayment[]; // Pagos individuales registrados
 }
 
 export interface Income {
@@ -232,6 +242,54 @@ export function useStore() {
     setData(prev => ({ ...prev, discounts: prev.discounts.filter(d => d.id !== id) }));
   }, []);
 
+  const removeTimeEntry = useCallback((id: string) => {
+    setData(prev => ({ ...prev, timeEntries: prev.timeEntries.filter(e => e.id !== id) }));
+  }, []);
+
+  const addLoanPayment = useCallback((discountId: string, payment: LoanPayment) => {
+    setData(prev => ({
+      ...prev,
+      discounts: prev.discounts.map(d => {
+        if (d.id === discountId) {
+          const currentPayments = d.loanPayments || [];
+          const newPayments = [...currentPayments, payment];
+          const totalPaid = newPayments.reduce((sum, p) => sum + p.amount, 0);
+          const progress = d.totalMonths ? (newPayments.length / d.totalMonths) * 100 : 0;
+          return {
+            ...d,
+            loanPayments: newPayments,
+            paymentsMade: newPayments.length,
+            paidAmount: totalPaid,
+            progress: progress,
+          };
+        }
+        return d;
+      })
+    }));
+  }, []);
+
+  const removeLoanPayment = useCallback((discountId: string, paymentId: string) => {
+    setData(prev => ({
+      ...prev,
+      discounts: prev.discounts.map(d => {
+        if (d.id === discountId) {
+          const currentPayments = d.loanPayments || [];
+          const newPayments = currentPayments.filter(p => p.id !== paymentId);
+          const totalPaid = newPayments.reduce((sum, p) => sum + p.amount, 0);
+          const progress = d.totalMonths ? (newPayments.length / d.totalMonths) * 100 : 0;
+          return {
+            ...d,
+            loanPayments: newPayments,
+            paymentsMade: newPayments.length,
+            paidAmount: totalPaid,
+            progress: progress,
+          };
+        }
+        return d;
+      })
+    }));
+  }, []);
+
   const addIncome = useCallback((income: Income) => {
     setData(prev => ({ ...prev, incomes: [...prev.incomes, income] }));
   }, []);
@@ -320,6 +378,9 @@ export function useStore() {
     addDiscount,
     updateDiscount,
     removeDiscount,
+    removeTimeEntry,
+    addLoanPayment,
+    removeLoanPayment,
     addIncome,
     updateIncome,
     removeIncome,

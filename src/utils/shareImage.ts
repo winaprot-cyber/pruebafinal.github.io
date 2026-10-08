@@ -13,13 +13,38 @@ export async function shareAsImageWhatsApp(elementId: string, filename: string =
       return;
     }
 
+    // Guardar estilos originales
+    const originalStyle = element.style.cssText;
+    const originalClass = element.className;
+    
+    // Hacer el elemento visible temporalmente para html2canvas
+    element.style.cssText = `
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      z-index: 9999 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
+      pointer-events: none !important;
+    `;
+    element.className = '';
+
+    // Esperar un momento para que los estilos se apliquen
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Capturar el elemento como canvas
     const canvas = await html2canvas(element, {
       backgroundColor: '#1e293b',
       scale: 2, // Mejor calidad
       logging: false,
       useCORS: true,
+      allowTaint: true,
     });
+
+    // Restaurar estilos originales
+    element.style.cssText = originalStyle;
+    element.className = originalClass;
 
     // Convertir a blob
     canvas.toBlob(async (blob) => {

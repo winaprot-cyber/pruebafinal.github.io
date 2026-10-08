@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Clock, DollarSign, Calendar, CreditCard, AlertTriangle, TrendingUp, Filter } from 'lucide-react';
+import { Search, Clock, DollarSign, Calendar, CreditCard, AlertTriangle, TrendingUp, Filter, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '../utils/calculations';
@@ -11,6 +11,34 @@ type FilterType = 'all' | 'time' | 'bonus' | 'discount' | 'income' | 'expense' |
 export default function Historial({ store }: { store: ReturnType<typeof useStore> }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
+
+  const handleDelete = (type: string, id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este registro?')) return;
+    
+    switch (type) {
+      case 'time':
+        store.removeTimeEntry(id);
+        break;
+      case 'bonus':
+        store.removeBonus(id);
+        break;
+      case 'discount':
+        store.removeDiscount(id);
+        break;
+      case 'income':
+        store.removeIncome(id);
+        break;
+      case 'expense':
+        store.removeExpense(id);
+        break;
+      case 'debt':
+        store.removeDebt(id);
+        break;
+      case 'holiday':
+        store.removeHoliday(id);
+        break;
+    }
+  };
 
   interface HistoryItem {
     id: string;
@@ -221,11 +249,20 @@ export default function Historial({ store }: { store: ReturnType<typeof useStore
                 <p className="text-sm font-medium text-white truncate">{item.description}</p>
                 <p className="text-xs text-slate-400 truncate">{item.detail}</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">{format(parseISO(item.date), 'dd MMM', { locale: es })}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${getColorClass(item.color)}`}>
-                  {item.type}
-                </span>
+              <div className="text-right flex items-center gap-2">
+                <div>
+                  <p className="text-xs text-slate-500">{format(parseISO(item.date), 'dd MMM', { locale: es })}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${getColorClass(item.color)}`}>
+                    {item.type}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDelete(item.type, item.id)}
+                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                  title="Eliminar"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </motion.div>
           ))
