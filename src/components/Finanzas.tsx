@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, Plus, Edit2, Trash2, X, Check, AlertCircle, Share2 } from 'lucide-react';
+import { Wallet, Plus, Edit2, Trash2, Share2, AlertCircle, Shield, Heart, PiggyBank } from 'lucide-react';
 import { formatCurrency, generateId } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
 import type { Bonus, Discount } from '../store/useStore';
@@ -27,6 +27,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   const [discountFixedPayment, setDiscountFixedPayment] = useState(false);
 
   const base = store.data.salaryConfig.baseSalary;
+  const { iessAporteActive, saludConyugeActive, fondosReservaActive } = store.data.salaryConfig;
 
   const handleSaveBonus = () => {
     if (!bonusName) return;
@@ -38,6 +39,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       basedOnSalary: bonusBasedOnSalary,
       percentage: parseFloat(bonusPercentage) || 0,
       type: 'bonus',
+      isSpecial: false,
     };
     if (editingBonus) {
       store.updateBonus(editingBonus, bonus);
@@ -58,6 +60,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       basedOnSalary: discountBasedOnSalary,
       percentage: parseFloat(discountPercentage) || 0,
       type: 'discount',
+      isSpecial: false,
       loanType: discountLoanType,
       totalMonths: parseInt(discountTotalMonths) || undefined,
       currentMonth: 1,
@@ -112,8 +115,8 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     setShowDiscountForm(true);
   };
 
-  const shareWhatsApp = (type: string, data: any) => {
-    const text = `*Control Biométrico - ${type}*\n${JSON.stringify(data, null, 2)}`;
+  const shareWhatsApp = (type: string, itemData: any) => {
+    const text = `*Control Biométrico - ${type}*\n${JSON.stringify(itemData, null, 2)}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -126,10 +129,14 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     return false;
   });
 
+  // Regular bonuses/discounts (not special)
+  const regularBonuses = store.data.bonuses.filter(b => !b.isSpecial);
+  const regularDiscounts = store.data.discounts.filter(d => !d.isSpecial);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
+        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
           <Wallet size={24} className="text-emerald-400" />
           Finanzas
         </h2>
@@ -155,20 +162,92 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         </motion.div>
       )}
 
+      {/* Special Items Section */}
+      <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/50 border border-slate-600/50 rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+          <Shield size={20} className="text-blue-400" />
+          Items Especiales (IESS y Fondos de Reserva)
+        </h3>
+        <p className="text-xs text-slate-400 mb-4">
+          Estos items se calculan automáticamente sobre la base de ingreso (Base + Horas Extras)
+        </p>
+        <div className="space-y-3">
+          {/* IESS Aporte Personal */}
+          <div className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Shield size={20} className="text-blue-400" />
+              <div>
+                <p className="text-sm font-medium text-white">Aporte Personal IESS</p>
+                <p className="text-xs text-slate-400">9.45% sobre (Base + Horas Extras)</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={iessAporteActive}
+                onChange={(e) => store.updateSalaryConfig({ iessAporteActive: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            </label>
+          </div>
+
+          {/* Salud Cónyuge */}
+          <div className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Heart size={20} className="text-pink-400" />
+              <div>
+                <p className="text-sm font-medium text-white">Salud Cónyuge IESS</p>
+                <p className="text-xs text-slate-400">3.41% sobre (Base + Horas Extras)</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={saludConyugeActive}
+                onChange={(e) => store.updateSalaryConfig({ saludConyugeActive: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+            </label>
+          </div>
+
+          {/* Fondos de Reserva */}
+          <div className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <PiggyBank size={20} className="text-emerald-400" />
+              <div>
+                <p className="text-sm font-medium text-white">Fondos de Reserva</p>
+                <p className="text-xs text-slate-400">8.33% sobre (Base + Horas Extras)</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fondosReservaActive}
+                onChange={(e) => store.updateSalaryConfig({ fondosReservaActive: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-xl p-4">
           <p className="text-sm text-emerald-300">Total Bonos Activos</p>
-          <p className="text-3xl font-bold text-white">
-            {formatCurrency(store.data.bonuses.filter(b => b.active).reduce((s, b) => {
+          <p className="text-2xl md:text-3xl font-bold text-white">
+            {formatCurrency(regularBonuses.filter(b => b.active).reduce((s, b) => {
               return s + (b.basedOnSalary ? base * b.percentage / 100 : b.amount);
             }, 0))}
           </p>
         </div>
         <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 rounded-xl p-4">
           <p className="text-sm text-red-300">Total Descuentos Activos</p>
-          <p className="text-3xl font-bold text-white">
-            {formatCurrency(store.data.discounts.filter(d => d.active).reduce((s, d) => {
+          <p className="text-2xl md:text-3xl font-bold text-white">
+            {formatCurrency(regularDiscounts.filter(d => d.active).reduce((s, d) => {
               return s + (d.basedOnSalary ? base * d.percentage / 100 : d.amount);
             }, 0))}
           </p>
@@ -176,12 +255,12 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       </div>
 
       {/* Bonuses Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-emerald-400">Bonos</h3>
+          <h3 className="text-base md:text-lg font-semibold text-emerald-400">Bonos</h3>
           <button
             onClick={() => { resetBonusForm(); setShowBonusForm(true); }}
-            className="flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-lg text-emerald-300 text-sm hover:bg-emerald-500/30"
+            className="flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/30 px-2 md:px-3 py-1 rounded-lg text-emerald-300 text-xs md:text-sm hover:bg-emerald-500/30"
           >
             <Plus size={14} /> Agregar Bono
           </button>
@@ -213,7 +292,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     />
                   )}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <label className="flex items-center gap-2 text-sm text-slate-300">
                     <input
                       type="checkbox"
@@ -245,8 +324,8 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         </AnimatePresence>
 
         <div className="space-y-2">
-          {store.data.bonuses.map(bonus => (
-            <div key={bonus.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
+          {regularBonuses.map(bonus => (
+            <div key={bonus.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-3">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => store.updateBonus(bonus.id, { active: !bonus.active })}
@@ -266,17 +345,17 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
               </div>
             </div>
           ))}
-          {store.data.bonuses.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay bonos registrados</p>}
+          {regularBonuses.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay bonos registrados</p>}
         </div>
       </div>
 
       {/* Discounts Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-red-400">Descuentos</h3>
+          <h3 className="text-base md:text-lg font-semibold text-red-400">Descuentos</h3>
           <button
             onClick={() => { resetDiscountForm(); setShowDiscountForm(true); }}
-            className="flex items-center gap-1 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-lg text-red-300 text-sm hover:bg-red-500/30"
+            className="flex items-center gap-1 bg-red-500/20 border border-red-500/30 px-2 md:px-3 py-1 rounded-lg text-red-300 text-xs md:text-sm hover:bg-red-500/30"
           >
             <Plus size={14} /> Agregar Descuento
           </button>
@@ -308,7 +387,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                     />
                   )}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <label className="flex items-center gap-2 text-sm text-slate-300">
                     <input
                       type="checkbox"
@@ -336,8 +415,6 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                   >
                     <option value="">Tipo (opcional)</option>
                     <option value="quirografario">Préstamo Quirografario</option>
-                    <option value="iess">IESS Personal</option>
-                    <option value="iess_salud">IESS Salud Cónyuge</option>
                     <option value="otro">Otro</option>
                   </select>
                   <input
@@ -369,8 +446,8 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         </AnimatePresence>
 
         <div className="space-y-2">
-          {store.data.discounts.map(discount => (
-            <div key={discount.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
+          {regularDiscounts.map(discount => (
+            <div key={discount.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-3">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => store.updateDiscount(discount.id, { active: !discount.active })}
@@ -392,7 +469,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
               </div>
             </div>
           ))}
-          {store.data.discounts.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay descuentos registrados</p>}
+          {regularDiscounts.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay descuentos registrados</p>}
         </div>
       </div>
     </div>

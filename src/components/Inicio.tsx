@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Camera, Calendar, Plus, Edit2, Save, X, Sun } from 'lucide-react';
+import { Clock, Camera, Calendar, Plus, Save, X, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, addWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateHours, getWeeklyHours, applyRule45h, generateId } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
@@ -17,26 +17,28 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
   const [holidayName, setHolidayName] = useState('');
   const [holidayDate, setHolidayDate] = useState('');
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [weekOffset, setWeekOffset] = useState(0);
   const entryPhotoRef = useRef<HTMLInputElement>(null);
   const exitPhotoRef = useRef<HTMLInputElement>(null);
 
   const today = new Date();
-  const weekStart = addWeeks(startOfWeek(today, { weekStartsOn: 1 }), currentWeekOffset);
-  const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const currentWeekStart = addWeeks(startOfWeek(today, { weekStartsOn: 1 }), weekOffset);
+  const currentWeekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: currentWeekStart, end: currentWeekEnd });
 
   const todayEntry = store.data.timeEntries.find(e => e.date === selectedDate);
   const weekEntries = store.data.timeEntries.filter(e => {
     const d = parseISO(e.date);
-    return d >= weekStart && d <= weekEnd;
+    return d >= currentWeekStart && d <= currentWeekEnd;
   });
 
-  const weekData = getWeeklyHours(store.data.timeEntries, weekStart);
-  const rule45 = applyRule45h(store.data.timeEntries, store.data.holidays, weekStart);
+  const weekData = getWeeklyHours(store.data.timeEntries, currentWeekStart);
+  const rule45 = applyRule45h(store.data.timeEntries, store.data.holidays, currentWeekStart);
 
+  const selectedMonth = currentWeekStart.getMonth();
+  const selectedYear = currentWeekStart.getFullYear();
   const currentMonthHolidays = store.data.holidays.filter(h => 
-    h.month === today.getMonth() && h.year === today.getFullYear()
+    h.month === selectedMonth && h.year === selectedYear
   );
 
   const handlePhotoCapture = (type: 'entry' | 'exit') => {
@@ -98,34 +100,70 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
 
   // Projection data for next weeks
   const projectionData = Array.from({ length: 4 }, (_, i) => {
-    const futureWeekStart = addWeeks(weekStart, i + 1);
+    const futureWeekStart = addWeeks(currentWeekStart, i + 1);
     const futureWeekData = getWeeklyHours(store.data.timeEntries, futureWeekStart);
     const totalHours = futureWeekData.reduce((s, d) => s + d.hours, 0);
     return {
       week: `Sem ${i + 2}`,
-      horas: totalHours || (i === 0 ? 0 : 45),
+      horas: totalHours || 0,
       proyeccion: 45,
     };
   });
 
   const totalWeekHours = weekData.reduce((s, d) => s + d.hours, 0);
-  const percentage = Math.min((totalWeekHours / 45) * 100, 100);
+  const percentage = Math.min((totalWeekHours / 45) * 100, 150);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
+      {/* Week Navigation */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setWeekOffset(o => o - 1)}
+            className="flex items-center gap-1 px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50 transition"
+          >
+            <ChevronLeft size={16} />
+            <span className="hidden sm:inline">Anterior</span>
+          </button>
+          <div className="text-center">
+            <p className="text-sm md:text-base font-semibold text-white">
+              {format(currentWeekStart, 'dd MMM', { locale: es })} - {format(currentWeekEnd, 'dd MMM yyyy', { locale: es })}
+            </p>
+            <p className="text-xs text-slate-400">
+              {weekOffset === 0 ? 'Semana Actual' : weekOffset < 0 ? `${Math.abs(weekOffset)} semana(s) atrás` : `${weekOffset} semana(s) adelante`}
+            </p>
+          </div>
+          <button
+            onClick={() => setWeekOffset(o => o + 1)}
+            className="flex items-center gap-1 px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50 transition"
+          >
+            <span className="hidden sm:inline">Siguiente</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        {weekOffset !== 0 && (
+          <button
+            onClick={() => setWeekOffset(0)}
+            className="w-full mt-2 text-xs text-blue-400 hover:text-blue-300"
+          >
+            Volver a semana actual
+          </button>
+        )}
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-xl p-4"
         >
-          <p className="text-sm text-blue-300">Horas Semanales</p>
-          <p className="text-3xl font-bold text-white">{totalWeekHours.toFixed(1)}h</p>
+          <p className="text-xs md:text-sm text-blue-300">Horas Semanales</p>
+          <p className="text-2xl md:text-3xl font-bold text-white">{totalWeekHours.toFixed(1)}h</p>
           <div className="mt-2 bg-slate-700/50 rounded-full h-2">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${percentage}%` }}
+              animate={{ width: `${Math.min(percentage, 100)}%` }}
               className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full"
             />
           </div>
@@ -138,11 +176,11 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
           transition={{ delay: 0.1 }}
           className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-xl p-4"
         >
-          <p className="text-sm text-purple-300">Horas Extra (Regla 45h)</p>
-          <p className="text-3xl font-bold text-white">{rule45.totalExtra.toFixed(1)}h</p>
-          <div className="flex gap-3 mt-2 text-xs">
-            <span className="text-yellow-300">50%: {rule45.weekendHours50.toFixed(1)}h</span>
-            <span className="text-red-300">100%: {rule45.weekendHours100.toFixed(1)}h</span>
+          <p className="text-xs md:text-sm text-purple-300">Horas Extra (Regla 45h)</p>
+          <p className="text-2xl md:text-3xl font-bold text-white">{rule45.totalExtra.toFixed(1)}h</p>
+          <div className="flex gap-2 md:gap-3 mt-2 text-xs">
+            <span className="text-yellow-300">50%: {rule45.totalExtra50.toFixed(1)}h</span>
+            <span className="text-red-300">100%: {rule45.totalExtra100.toFixed(1)}h</span>
           </div>
         </motion.div>
 
@@ -152,24 +190,24 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
           transition={{ delay: 0.2 }}
           className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-xl p-4"
         >
-          <p className="text-sm text-emerald-300">Feriados del Mes</p>
-          <p className="text-3xl font-bold text-white">{currentMonthHolidays.length}</p>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs md:text-sm text-emerald-300">Feriados del Mes</p>
+          <p className="text-2xl md:text-3xl font-bold text-white">{currentMonthHolidays.length}</p>
+          <p className="text-xs text-slate-400 mt-2 truncate">
             {currentMonthHolidays.map(h => h.name).join(', ') || 'Sin feriados'}
           </p>
         </motion.div>
       </div>
 
       {/* Time Entry Form */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
           <Clock size={20} className="text-blue-400" />
           Registrar Marcación
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Fecha</label>
+            <label className="text-xs md:text-sm text-slate-400 block mb-1">Fecha</label>
             <input
               type="date"
               value={selectedDate}
@@ -186,39 +224,39 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
                   setEditingEntry(null);
                 }
               }}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
             />
           </div>
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Hora de Ingreso</label>
+            <label className="text-xs md:text-sm text-slate-400 block mb-1">Hora de Ingreso</label>
             <input
               type="time"
               value={entryTime}
               onChange={(e) => setEntryTime(e.target.value)}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
             />
           </div>
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Hora de Salida</label>
+            <label className="text-xs md:text-sm text-slate-400 block mb-1">Hora de Salida</label>
             <input
               type="time"
               value={exitTime}
               onChange={(e) => setExitTime(e.target.value)}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
             />
           </div>
           <div className="flex items-end gap-2">
             <button
               onClick={() => handlePhotoCapture('entry')}
-              className="flex-1 flex items-center justify-center gap-2 bg-blue-500/20 border border-blue-500/30 rounded-lg px-3 py-2 text-blue-300 hover:bg-blue-500/30 transition"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 md:px-3 py-2 text-blue-300 hover:bg-blue-500/30 transition text-xs md:text-sm"
             >
-              <Camera size={16} /> Foto Ingreso
+              <Camera size={14} /> <span className="hidden sm:inline">Foto</span> Ingreso
             </button>
             <button
               onClick={() => handlePhotoCapture('exit')}
-              className="flex-1 flex items-center justify-center gap-2 bg-purple-500/20 border border-purple-500/30 rounded-lg px-3 py-2 text-purple-300 hover:bg-purple-500/30 transition"
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 bg-purple-500/20 border border-purple-500/30 rounded-lg px-2 md:px-3 py-2 text-purple-300 hover:bg-purple-500/30 transition text-xs md:text-sm"
             >
-              <Camera size={16} /> Foto Salida
+              <Camera size={14} /> <span className="hidden sm:inline">Foto</span> Salida
             </button>
             <input ref={entryPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoChange(e, 'entry')} />
             <input ref={exitPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoChange(e, 'exit')} />
@@ -226,23 +264,23 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
         </div>
 
         {(entryPhoto || exitPhoto) && (
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-3 mt-4">
             {entryPhoto && (
               <div className="relative">
-                <img src={entryPhoto} alt="Foto ingreso" className="w-20 h-20 rounded-lg object-cover border border-blue-500/30" />
+                <img src={entryPhoto} alt="Foto ingreso" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover border border-blue-500/30" />
                 <span className="absolute -top-1 -left-1 bg-blue-500 text-xs px-1 rounded">Ingreso</span>
               </div>
             )}
             {exitPhoto && (
               <div className="relative">
-                <img src={exitPhoto} alt="Foto salida" className="w-20 h-20 rounded-lg object-cover border border-purple-500/30" />
+                <img src={exitPhoto} alt="Foto salida" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover border border-purple-500/30" />
                 <span className="absolute -top-1 -left-1 bg-purple-500 text-xs px-1 rounded">Salida</span>
               </div>
             )}
           </div>
         )}
 
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {entryTime && (
             <span className="text-sm text-slate-300">
               Horas: <strong className="text-white">{calculateHours(entryTime, exitTime || entryTime).toFixed(2)}h</strong>
@@ -250,7 +288,7 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
           )}
           <button
             onClick={handleSaveEntry}
-            className="ml-auto flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition"
+            className="sm:ml-auto w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition"
           >
             {editingEntry ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Guardar</>}
           </button>
@@ -258,40 +296,18 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       </div>
 
       {/* Weekly Chart */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Calendar size={20} className="text-purple-400" />
-            Gráfico Semanal
-          </h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentWeekOffset(o => o - 1)}
-              className="px-3 py-1 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
-            >
-              ← Anterior
-            </button>
-            <button
-              onClick={() => setCurrentWeekOffset(0)}
-              className="px-3 py-1 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => setCurrentWeekOffset(o => o + 1)}
-              className="px-3 py-1 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50"
-            >
-              Siguiente →
-            </button>
-          </div>
-        </div>
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+          <Calendar size={20} className="text-purple-400" />
+          Gráfico Semanal
+        </h3>
 
-        <div className="h-64">
+        <div className="h-48 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weekData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="day" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
+              <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
                 labelStyle={{ color: '#e2e8f0' }}
@@ -308,13 +324,13 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
         </div>
 
         {/* Projection */}
-        <div className="mt-4 h-48">
-          <p className="text-sm text-slate-400 mb-2">Proyección Semanal</p>
+        <div className="mt-4 h-36 md:h-48">
+          <p className="text-xs md:text-sm text-slate-400 mb-2">Proyección Semanal</p>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={projectionData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="week" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <XAxis dataKey="week" stroke="#94a3b8" fontSize={12} />
+              <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
               />
@@ -326,15 +342,15 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       </div>
 
       {/* Holidays Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-base md:text-lg font-semibold flex items-center gap-2">
             <Sun size={20} className="text-yellow-400" />
-            Feriados del Mes
+            Feriados ({format(currentWeekStart, 'MMMM yyyy', { locale: es })})
           </h3>
           <button
             onClick={() => setShowHolidayForm(!showHolidayForm)}
-            className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/30 px-3 py-1 rounded-lg text-yellow-300 text-sm hover:bg-yellow-500/30"
+            className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/30 px-2 md:px-3 py-1 rounded-lg text-yellow-300 text-xs md:text-sm hover:bg-yellow-500/30"
           >
             <Plus size={14} /> Agregar
           </button>
@@ -344,9 +360,9 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
-            className="mb-4 p-4 bg-slate-700/30 rounded-lg"
+            className="mb-4 p-3 md:p-4 bg-slate-700/30 rounded-lg"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <input
                 placeholder="Nombre del feriado"
                 value={holidayName}
@@ -374,7 +390,7 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
             <p className="text-slate-500 text-sm">No hay feriados registrados este mes</p>
           ) : (
             currentMonthHolidays.map(h => (
-              <div key={h.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-2">
+              <div key={h.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-2">
                 <div>
                   <span className="text-white text-sm font-medium">{h.name}</span>
                   <span className="text-slate-400 text-xs ml-2">{format(parseISO(h.date), 'dd MMM yyyy', { locale: es })}</span>

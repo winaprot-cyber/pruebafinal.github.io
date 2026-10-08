@@ -170,7 +170,7 @@ export default function Historial({ store }: { store: ReturnType<typeof useStore
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-3">
+      <div className="flex flex-col gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -178,15 +178,15 @@ export default function Historial({ store }: { store: ReturnType<typeof useStore
             placeholder="Buscar en historial..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2 text-white text-sm"
+            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm"
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto pb-1">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
           {filterOptions.map(opt => (
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex-shrink-0 ${
                 filter === opt.value
                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                   : 'bg-slate-700/30 text-slate-400 hover:text-white'

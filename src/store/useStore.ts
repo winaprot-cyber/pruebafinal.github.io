@@ -28,6 +28,8 @@ export interface Bonus {
   basedOnSalary: boolean;
   percentage: number;
   type: 'bonus';
+  isSpecial?: boolean;
+  specialType?: 'fondos_reserva';
 }
 
 export interface Discount {
@@ -38,6 +40,8 @@ export interface Discount {
   basedOnSalary: boolean;
   percentage: number;
   type: 'discount';
+  isSpecial?: boolean;
+  specialType?: 'iess_aporte' | 'salud_conyuge';
   loanType?: string;
   totalMonths?: number;
   currentMonth?: number;
@@ -85,6 +89,9 @@ export interface DecimoEntry {
 export interface SalaryConfig {
   baseSalary: number;
   biweeklyPayment: number;
+  iessAporteActive: boolean;
+  saludConyugeActive: boolean;
+  fondosReservaActive: boolean;
 }
 
 export interface PaymentPeriod {
@@ -119,7 +126,13 @@ const defaultData: AppData = {
   expenses: [],
   debts: [],
   decimoEntries: [],
-  salaryConfig: { baseSalary: 0, biweeklyPayment: 0 },
+  salaryConfig: { 
+    baseSalary: 0, 
+    biweeklyPayment: 0,
+    iessAporteActive: true,
+    saludConyugeActive: false,
+    fondosReservaActive: false,
+  },
   paymentPeriods: [],
 };
 
@@ -127,19 +140,24 @@ function loadData(): AppData {
   try {
     const stored = localStorage.getItem('controlBiometrico_data');
     if (stored) {
-      return { ...defaultData, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored);
+      return { 
+        ...defaultData, 
+        ...parsed,
+        salaryConfig: { ...defaultData.salaryConfig, ...(parsed.salaryConfig || {}) }
+      };
     }
   } catch (e) {
-    console.error('Error loading data:', e);
+    console.error('Error loading ', e);
   }
   return defaultData;
 }
 
-function saveData(data: AppData) {
+function saveData(dataToSave: AppData) {
   try {
-    localStorage.setItem('controlBiometrico_data', JSON.stringify(data));
+    localStorage.setItem('controlBiometrico_data', JSON.stringify(dataToSave));
   } catch (e) {
-    console.error('Error saving data:', e);
+    console.error('Error saving ', e);
   }
 }
 
@@ -277,7 +295,7 @@ export function useStore() {
       const imported = JSON.parse(jsonString);
       setData({ ...defaultData, ...imported });
     } catch (e) {
-      console.error('Error importing data:', e);
+      console.error('Error importing ', e);
     }
   }, []);
 

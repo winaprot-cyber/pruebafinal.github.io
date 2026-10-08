@@ -40,9 +40,46 @@ input[type="checkbox"] {
   accent-color: #3b82f6;
 }
 
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Increase touch targets */
+  button, a, input, select {
+    min-height: 40px;
+  }
+
+  /* Better spacing on mobile */
+  .space-y-4 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  /* Smaller text on mobile */
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1.125rem; }
+  h3 { font-size: 1rem; }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better padding for mobile */
+  main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 /* Smooth transitions */
 * {
-  transition-property: background-color, border-color, color, fill, stroke;
+  transition-property: background-color, border-color, color, fill, stroke, opacity, transform;
   transition-timing-function: ease;
   transition-duration: 150ms;
 }
@@ -52,4 +89,75 @@ input[type="checkbox"] {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Toggle switch styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #475569;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #3b82f6;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Responsive table alternative */
+@media (max-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area for notched devices */
+@supports (padding: max(0px)) {
+  header {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+  
+  footer {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }

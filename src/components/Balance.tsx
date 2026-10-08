@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { PieChart as PieIcon, Plus, Edit2, Trash2, CreditCard, Share2, TrendingUp, TrendingDown, DollarSign, X, Check } from 'lucide-react';
-import { formatCurrency, generateId, calculateBonuses, calculateDiscounts } from '../utils/calculations';
+import { PieChart as PieIcon, Plus, Edit2, Trash2, CreditCard, Share2, TrendingUp, TrendingDown, DollarSign, X, Check, Shield, Heart, PiggyBank } from 'lucide-react';
+import { formatCurrency, generateId, calculateBonuses, calculateDiscounts, calculateBaseIngreso, calculateSpecialDiscounts, calculateSpecialBonuses } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
 import type { Income, Expense, Debt } from '../store/useStore';
 
@@ -35,6 +35,7 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
   const [debtFrequency, setDebtFrequency] = useState<'monthly' | 'once'>('monthly');
 
   const base = store.data.salaryConfig.baseSalary;
+  const { iessAporteActive, saludConyugeActive, fondosReservaActive } = store.data.salaryConfig;
   const bonuses = calculateBonuses(store.data.bonuses, base);
   const discounts = calculateDiscounts(store.data.discounts, base);
 
@@ -47,7 +48,15 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
   const totalDebtPayments = store.data.debts.reduce((s, d) => s + d.monthlyPayment, 0);
   const totalDebtsRemaining = store.data.debts.reduce((s, d) => s + (d.totalAmount - d.paidAmount), 0);
 
-  const netMonthly = base + bonuses - discounts + totalIncome - totalExpenses - totalDebtPayments;
+  // Special items calculation
+  const baseIngreso = calculateBaseIngreso(base, 0); // Simplified for balance view
+  const specialDiscounts = calculateSpecialDiscounts(baseIngreso);
+  const specialBonuses = calculateSpecialBonuses(baseIngreso);
+  const iessAmount = iessAporteActive ? specialDiscounts.iessAporte : 0;
+  const saludAmount = saludConyugeActive ? specialDiscounts.saludConyuge : 0;
+  const fondosAmount = fondosReservaActive ? specialBonuses.fondosReserva : 0;
+
+  const netMonthly = base + bonuses + fondosAmount - discounts - iessAmount - saludAmount + totalIncome - totalExpenses - totalDebtPayments;
   const personalBalance = netMonthly;
 
   // Chart data
