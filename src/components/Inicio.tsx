@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Camera, Calendar, Plus, Save, X, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Camera, Calendar, Plus, Save, X, Sun, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { format, startOfWeek, endOfWeek, parseISO, addWeeks, subWeeks, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -11,11 +11,16 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [entryTime, setEntryTime] = useState('');
   const [exitTime, setExitTime] = useState('');
+  const [entryPhoto, setEntryPhoto] = useState<string>('');
+  const [exitPhoto, setExitPhoto] = useState<string>('');
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayName, setHolidayName] = useState('');
   const [holidayDate, setHolidayDate] = useState('');
   const [holidayDates, setHolidayDates] = useState<string[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const entryPhotoRef = useRef<HTMLInputElement>(null);
+  const exitPhotoRef = useRef<HTMLInputElement>(null);
 
   const today = new Date();
   const currentWeekStart = addWeeks(startOfWeek(today, { weekStartsOn: 1 }), weekOffset);
@@ -27,6 +32,24 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
   const rule45 = applyRule45h(timeEntries, holidays, currentWeekStart);
   const currentMonthHolidays = holidays.filter(h => h.month === currentWeekStart.getMonth() && h.year === currentWeekStart.getFullYear());
 
+  // Cargar datos existentes cuando cambia la fecha
+  useEffect(() => {
+    const existingEntry = timeEntries.find(e => e.date === selectedDate);
+    if (existingEntry) {
+      setEntryTime(existingEntry.entryTime);
+      setExitTime(existingEntry.exitTime || '');
+      setEntryPhoto(existingEntry.entryPhoto || '');
+      setExitPhoto(existingEntry.exitPhoto || '');
+      setIsEditing(true);
+    } else {
+      setEntryTime('');
+      setExitTime('');
+      setEntryPhoto('');
+      setExitPhoto('');
+      setIsEditing(false);
+    }
+  }, [selectedDate, timeEntries]);
+
   const handleSaveEntry = () => {
     if (!entryTime) return;
     const hours = calculateHours(entryTime, exitTime || entryTime);
@@ -37,12 +60,30 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       date: selectedDate,
       entryTime,
       exitTime: exitTime || '',
+      entryPhoto: entryPhoto || undefined,
+      exitPhoto: exitPhoto || undefined,
       hours,
       isHoliday,
       holidayName: holiday?.name,
     });
     setEntryTime('');
     setExitTime('');
+    setEntryPhoto('');
+    setExitPhoto('');
+    setIsEditing(false);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'entry' | 'exit') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        if (type === 'entry') setEntryPhoto(result);
+        else setExitPhoto(result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddHoliday = () => {
@@ -172,6 +213,37 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
             <label className="label-clear text-xs md:text-sm block mb-1">Hora de Salida</label>
             <input type="time" value={exitTime} onChange={(e) => setExitTime(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
           </div>
+          <div className="sm:col-span-2">
+            <label className="label-clear text-xs md:text-sm block mb-1">Fotos (Opcional)</label>
+            <div className="flex gap-2">
+              <button onClick={() => entryPhotoRef.current?.click()} className="btn-secondary flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm">
+                <Camera size={16} />
+                <span>Foto Ingreso</span>
+              </button>
+              <button onClick={() => exitPhotoRef.current?.click()} className="btn-secondary flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm">
+                <Camera size={16} />
+                <span>Foto Salida</span>
+              </button>
+              <input ref={entryPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoChange(e, 'entry')} />
+              <input ref={exitPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoChange(e, 'exit')} />
+            </div>
+            {(entryPhoto || exitPhoto) && (
+              <div className="flex gap-2 mt-2">
+                {entryPhoto && (
+                  <div className="relative">
+                    <img src={entryPhoto} alt="Foto ingreso" className="w-20 h-20 rounded-lg object-cover border-2 border-blue-500/30" />
+                    <span className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs px-1 rounded">Ingreso</span>
+                  </div>
+                )}
+                {exitPhoto && (
+                  <div className="relative">
+                    <img src={exitPhoto} alt="Foto salida" className="w-20 h-20 rounded-lg object-cover border-2 border-purple-500/30" />
+                    <span className="absolute -top-1 -left-1 bg-purple-500 text-white text-xs px-1 rounded">Salida</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {entryTime && (
@@ -179,8 +251,14 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
               Horas: <strong className="text-white font-bold">{calculateHours(entryTime, exitTime || entryTime).toFixed(2)}h</strong>
             </span>
           )}
+          {isEditing && (
+            <span className="text-xs text-yellow-400 flex items-center gap-1">
+              <Edit2 size={12} />
+              Editando marcación existente
+            </span>
+          )}
           <button onClick={handleSaveEntry} className="btn-primary sm:ml-auto w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm">
-            {todayEntry ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Guardar</>}
+            {isEditing ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Guardar</>}
           </button>
         </div>
       </div>
