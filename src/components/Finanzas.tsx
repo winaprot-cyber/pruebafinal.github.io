@@ -95,9 +95,21 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         <div className="space-y-2">
           {bonuses.map(bonus => (
             <div key={bonus.id} className="flex items-center justify-between bg-slate-700/80 rounded-lg px-3 md:px-4 py-3 border border-slate-600/50">
-              <div>
-                <p className="text-sm font-semibold text-white">{bonus.name}</p>
-                <p className="text-xs text-slate-300 mt-1">{formatCurrency(bonus.amount)}</p>
+              <div className="flex items-center gap-3 flex-1">
+                <button
+                  onClick={() => store.updateBonus(bonus.id, { active: !bonus.active })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${
+                    bonus.active ? 'bg-emerald-500' : 'bg-slate-600'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    bonus.active ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <div>
+                  <p className={`text-sm font-semibold ${bonus.active ? 'text-white' : 'text-slate-500'}`}>{bonus.name}</p>
+                  <p className={`text-xs mt-1 ${bonus.active ? 'text-slate-300' : 'text-slate-500'}`}>{formatCurrency(bonus.amount)}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => store.removeBonus(bonus.id)} className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded"><Trash2 size={14} /></button>

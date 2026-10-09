@@ -142,7 +142,27 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <div>
             <label className="label-clear text-xs md:text-sm block mb-1">Fecha</label>
-            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
+            <input 
+              type="date" 
+              value={selectedDate} 
+              onChange={(e) => {
+                const newDate = e.target.value;
+                setSelectedDate(newDate);
+                // Si ya existe una marcación para esta fecha, cargar los datos
+                const existingEntry = timeEntries.find(entry => entry.date === newDate);
+                if (existingEntry) {
+                  setEntryTime(existingEntry.entryTime);
+                  setExitTime(existingEntry.exitTime);
+                } else {
+                  setEntryTime('');
+                  setExitTime('');
+                }
+              }} 
+              className="input-solid w-full rounded-lg px-3 py-2 text-sm" 
+            />
+            {todayEntry && (
+              <p className="text-xs text-blue-400 mt-1">✓ Ya existe una marcación para esta fecha</p>
+            )}
           </div>
           <div>
             <label className="label-clear text-xs md:text-sm block mb-1">Hora de Ingreso</label>

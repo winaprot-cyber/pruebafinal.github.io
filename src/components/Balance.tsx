@@ -389,38 +389,99 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
         <div className="space-y-3">
           {debts.map(debt => {
             const isFullyPaid = debt.progress >= 100;
+            const remainingPayments = (debt.totalMonths || 0) - (debt.paymentsMade || 0);
 
             return (
               <div key={debt.id} className="bg-slate-700/80 rounded-lg p-3 md:p-4 border border-slate-600/50">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{debt.name}</p>
-                    <p className="text-xs text-slate-300">
-                      {debt.type} • {formatCurrency(debt.monthlyPayment)}/mes
-                      {debt.paymentsMade > 0 && (
-                        <span className="ml-2 text-blue-400">
-                          • {debt.paymentsMade} pagos realizados
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-white">{debt.name}</p>
+                      {debt.amortizationType && (
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          debt.amortizationType === 'frances' 
+                            ? 'bg-blue-500/20 text-blue-300' 
+                            : 'bg-purple-500/20 text-purple-300'
+                        }`}>
+                          {debt.amortizationType === 'frances' ? 'Francesa' : 'Alemana'}
                         </span>
                       )}
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      {debt.type === 'quirografario' && '💳'}
+                      {debt.type === 'hipotecario' && '🏠'}
+                      {debt.type === 'vehicular' && '🚗'}
+                      {debt.type === 'tarjeta' && '💳'}
+                      {debt.type === 'electrodomestico' && '🔌'}
+                      {debt.type === 'personal' && '👤'}
+                      {debt.type === 'otro' && '📦'}
+                      {' '}{debt.type}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     {!isFullyPaid && (
-                      <button onClick={() => openPaymentModal(debt, 'debt')} className="btn-secondary px-2 py-1 rounded text-xs">Pagar</button>
+                      <button onClick={() => openPaymentModal(debt, 'debt')} className="btn-secondary px-3 py-1 rounded text-xs">Pagar</button>
                     )}
                     <button onClick={() => store.removeDebt(debt.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
                     <button onClick={() => shareWhatsApp('Deuda', debt)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-slate-600 rounded-full h-2">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${debt.progress}%` }} className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full" />
+
+                {/* Información detallada */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-xs">
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">Total</p>
+                    <p className="text-white font-semibold">{formatCurrency(debt.totalAmount)}</p>
                   </div>
-                  <span className="text-xs text-slate-400">{debt.progress.toFixed(0)}%</span>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">Cuota Mensual</p>
+                    <p className="text-white font-semibold">{formatCurrency(debt.monthlyPayment)}</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">Plazo</p>
+                    <p className="text-white font-semibold">{debt.totalMonths || '?'} meses</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <p className="text-slate-400">Tasa Interés</p>
+                    <p className="text-white font-semibold">{debt.interestRate || 0}% anual</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs text-slate-500 mt-1">
-                  <span>Pagado: {formatCurrency(debt.paidAmount)}</span>
-                  <span>Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</span>
+
+                {/* Progreso */}
+                <div className="mb-2">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span>Pagos: {debt.paymentsMade || 0} de {debt.totalMonths || '?'}</span>
+                    <span className={debt.progress >= 100 ? 'text-emerald-400 font-semibold' : ''}>
+                      {debt.progress.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-600 rounded-full h-2">
+                    <motion.div 
+                      initial={{ width: 0 }} 
+                      animate={{ width: `${debt.progress}%` }} 
+                      className={`h-2 rounded-full ${
+                        debt.progress >= 100 
+                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
+                          : 'bg-gradient-to-r from-blue-500 to-emerald-500'
+                      }`} 
+                    />
+                  </div>
+                </div>
+
+                {/* Resumen financiero */}
+                <div className="flex justify-between text-xs pt-2 border-t border-slate-600/50">
+                  <div>
+                    <span className="text-slate-400">Pagado: </span>
+                    <span className="text-emerald-400 font-semibold">{formatCurrency(debt.paidAmount)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Restante: </span>
+                    <span className="text-red-400 font-semibold">{formatCurrency(debt.totalAmount - debt.paidAmount)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Faltan: </span>
+                    <span className="text-blue-400 font-semibold">{remainingPayments} pagos</span>
+                  </div>
                 </div>
               </div>
             );
