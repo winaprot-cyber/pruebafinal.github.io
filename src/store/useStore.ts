@@ -68,9 +68,39 @@ export function useStore() {
   const [data, setData] = useState<AppData>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsedData = JSON.parse(saved);
+      // Si no hay usuarios, crear el usuario admin predeterminado
+      if (!parsedData.users || parsedData.users.length === 0) {
+        const adminUser: User = {
+          id: generateId(),
+          username: 'Dome4437',
+          name: 'Hugo León',
+          email: '',
+          password: 'Jeca4437',
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...parsedData,
+          users: [adminUser],
+        };
+      }
+      return parsedData;
     }
-    return defaultData;
+    // Si no hay datos guardados, crear el usuario admin predeterminado
+    const adminUser: User = {
+      id: generateId(),
+      username: 'Dome4437',
+      name: 'Hugo León',
+      email: '',
+      password: 'Jeca4437',
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+    };
+    return {
+      ...defaultData,
+      users: [adminUser],
+    };
   });
 
   useEffect(() => {
@@ -131,6 +161,36 @@ export function useStore() {
 
   const logout = () => {
     setData(prev => ({ ...prev, currentUser: null }));
+  };
+
+  // Resetear todos los usuarios y dejar solo al administrador predeterminado
+  const resetUsers = () => {
+    const adminUser: User = {
+      id: generateId(),
+      username: 'Dome4437',
+      name: 'Hugo León',
+      email: '',
+      password: 'Jeca4437',
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+    };
+    
+    setData(prev => ({
+      ...prev,
+      users: [adminUser],
+      currentUser: null,
+      // Limpiar todos los datos de usuarios anteriores
+      timeEntries: [],
+      holidays: [],
+      bonuses: [],
+      discounts: [],
+      incomes: [],
+      expenses: [],
+      debts: [],
+      decimoEntries: [],
+      salaryConfigs: [],
+      monthlyReports: [],
+    }));
   };
 
   const getCurrentUser = (): User | null => {
@@ -598,6 +658,7 @@ export function useStore() {
     register,
     login,
     logout,
+    resetUsers,
     getCurrentUser,
     isAdmin,
     addTimeEntry,

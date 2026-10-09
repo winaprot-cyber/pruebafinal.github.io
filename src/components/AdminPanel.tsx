@@ -259,13 +259,33 @@ export default function AdminPanel({ store, onBack }: AdminPanelProps) {
           <Shield size={24} className="text-purple-400" />
           Panel de Administración
         </h2>
-        <button
-          onClick={onBack}
-          className="btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg"
-        >
-          <ArrowLeft size={18} />
-          Volver
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (confirm('¿Estás seguro de que quieres resetear todos los usuarios? Esto eliminará todos los usuarios excepto "Dome4437" y borrará todos los datos del sistema.')) {
+                store.resetUsers();
+                alert('✅ Sistema reseteado. Solo el usuario "Dome4437" existe ahora.');
+                window.location.reload();
+              }
+            }}
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2"
+            title="Resetear todos los usuarios y datos del sistema"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            </svg>
+            Resetear Sistema
+          </button>
+          <button
+            onClick={onBack}
+            className="btn-secondary flex items-center gap-2 px-4 py-2 rounded-lg"
+          >
+            <ArrowLeft size={18} />
+            Volver
+          </button>
+        </div>
       </div>
 
       {/* Stats Summary */}
