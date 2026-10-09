@@ -28,51 +28,146 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
 
   // Generar reporte del mes anterior automáticamente
   useEffect(() => {
-    const lastMonth = subMonths(today, 1);
-    const lastMonthNumber = lastMonth.getMonth();
-    const lastMonthYear = lastMonth.getFullYear();
-    
-    // Verificar si ya existe un reporte para el mes anterior
-    const existingReport = store.getMonthlyReport(lastMonthNumber, lastMonthYear);
-    if (!existingReport) {
-      store.generateMonthlyReport(lastMonthNumber, lastMonthYear);
+    try {
+      const lastMonth = subMonths(today, 1);
+      const lastMonthNumber = lastMonth.getMonth();
+      const lastMonthYear = lastMonth.getFullYear();
+      
+      // Verificar si ya existe un reporte para el mes anterior
+      const existingReport = store.getMonthlyReport(lastMonthNumber, lastMonthYear);
+      if (!existingReport && store.generateMonthlyReport) {
+        store.generateMonthlyReport(lastMonthNumber, lastMonthYear);
+      }
+    } catch (error) {
+      console.error('Error generating monthly report:', error);
     }
   }, []);
 
   // Obtener reportes históricos
-  const historicalReports = store.getMonthlyReports().sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
-  });
+  const historicalReports = (() => {
+    try {
+      const reports = store.getMonthlyReports ? store.getMonthlyReports() : [];
+      return reports.sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+    } catch (error) {
+      console.error('Error getting monthly reports:', error);
+      return [];
+    }
+  })();
 
-  const weeklyData = weeks.map((weekStart, i) => {
-    const rule = applyRule45h(store.getUserTimeEntries(), store.getUserHolidays(), weekStart);
-    const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
-    return { name: `Sem ${weekNumber}`, horas: rule.weekdayHours, extra50: rule.totalExtra50, extra100: rule.totalExtra100, feriados: rule.holidayHours, total: rule.weekdayHours + rule.totalExtra };
-  });
+  const weeklyData = (() => {
+    try {
+      const timeEntries = store.getUserTimeEntries ? store.getUserTimeEntries() : [];
+      const holidays = store.getUserHolidays ? store.getUserHolidays() : [];
+      
+      return weeks.map((weekStart) => {
+        const rule = applyRule45h(timeEntries, holidays, weekStart);
+        const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
+        return { 
+          name: `Sem ${weekNumber}`, 
+          horas: rule.weekdayHours, 
+          extra50: rule.totalExtra50, 
+          extra100: rule.totalExtra100, 
+          feriados: rule.holidayHours, 
+          total: rule.weekdayHours + rule.totalExtra 
+        };
+      });
+    } catch (error) {
+      console.error('Error calculating weekly data:', error);
+      return [];
+    }
+  })();
 
-  const monthlyHours = selectedWeeks.length > 0
-    ? weeks.reduce((sum, w) => { const rule = applyRule45h(store.getUserTimeEntries(), store.getUserHolidays(), w); return sum + rule.weekdayHours + rule.totalExtra; }, 0)
-    : store.getUserTimeEntries().filter(e => { const d = parseISO(e.date); return d >= monthStart && d <= monthEnd; }).reduce((sum, e) => sum + e.hours, 0);
+  const monthlyHours = (() => {
+    try {
+      const timeEntries = store.getUserTimeEntries ? store.getUserTimeEntries() : [];
+      const holidays = store.getUserHolidays ? store.getUserHolidays() : [];
+      
+      if (selectedWeeks.length > 0) {
+        return weeks.reduce((sum, w) => { 
+          const rule = applyRule45h(timeEntries, holidays, w); 
+          return sum + rule.weekdayHours + rule.totalExtra; 
+        }, 0);
+      } else {
+        return timeEntries.filter(e => { 
+          const d = parseISO(e.date); 
+          return d >= monthStart && d <= monthEnd; 
+        }).reduce((sum, e) => sum + e.hours, 0);
+      }
+    } catch (error) {
+      console.error('Error calculating monthly hours:', error);
+      return 0;
+    }
+  })();
+  
+  const monthlyOvertime = (() => {
+    try {
+      const timeEntries = store.getUserTimeEntries ? store.getUserTimeEntries() : [];
+      const holidays = store.getUserHolidays ? store.getUserHolidays() : [];
+      
+      return weeks.reduce((sum, w) => { 
+        const rule = applyRule45h(timeEntries, holidays, w); 
+        return sum + rule.totalExtra; 
+      }, 0);
+    } catch (error) {
+      console.error('Error calculating monthly overtime:', error);
+      return 0;
+    }
+  })();
+  const quarterlyData = (() => {
+    try {
+      const timeEntries = store.getUserTimeEntries ? store.getUserTimeEntries() : [];
+      
+      return Array.from({ length: 3 }, (_, i) => {
+        const month = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 2 + i, 1);
+        const mStart = startOfMonth(month);
+        const mEnd = endOfMonth(month);
+        const hours = timeEntries.filter(e => { 
+          const d = parseISO(e.date); 
+          return d >= mStart && d <= mEnd; 
+        }).reduce((sum, e) => sum + e.hours, 0);
+        return { name: format(month, 'MMM', { locale: es }), horas: hours };
+      });
+    } catch (error) {
+      console.error('Error calculating quarterly data:', error);
+      return [];
+    }
+  })();
 
-  const monthlyOvertime = weeks.reduce((sum, w) => { const rule = applyRule45h(store.getUserTimeEntries(), store.getUserHolidays(), w); return sum + rule.totalExtra; }, 0);
+  const totalDebts = (() => {
+    try {
+      const debts = store.getUserDebts ? store.getUserDebts() : [];
+      return debts.reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
+    } catch (error) {
+      console.error('Error calculating total debts:', error);
+      return 0;
+    }
+  })();
 
-  const quarterlyData = Array.from({ length: 3 }, (_, i) => {
-    const month = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 2 + i, 1);
-    const mStart = startOfMonth(month);
-    const mEnd = endOfMonth(month);
-    const hours = store.getUserTimeEntries().filter(e => { const d = parseISO(e.date); return d >= mStart && d <= mEnd; }).reduce((sum, e) => sum + e.hours, 0);
-    return { name: format(month, 'MMM', { locale: es }), horas: hours };
-  });
+  const monthlyDebtPayments = (() => {
+    try {
+      const debts = store.getUserDebts ? store.getUserDebts() : [];
+      return debts.reduce((sum, d) => sum + d.monthlyPayment, 0);
+    } catch (error) {
+      console.error('Error calculating monthly debt payments:', error);
+      return 0;
+    }
+  })();
 
-  const totalDebts = store.getUserDebts().reduce((sum, d) => sum + (d.totalAmount - d.paidAmount), 0);
-  const monthlyDebtPayments = store.getUserDebts().reduce((sum, d) => sum + d.monthlyPayment, 0);
-
-  const pieData = [
-    { name: 'Horas Regulares', value: monthlyHours - monthlyOvertime, color: '#3b82f6' },
-    { name: 'Horas Extra', value: monthlyOvertime, color: '#f59e0b' },
-    { name: 'Deudas Pendientes', value: totalDebts, color: '#ef4444' },
-  ].filter(d => d.value > 0);
+  const pieData = (() => {
+    try {
+      return [
+        { name: 'Horas Regulares', value: Math.max(0, monthlyHours - monthlyOvertime), color: '#3b82f6' },
+        { name: 'Horas Extra', value: Math.max(0, monthlyOvertime), color: '#f59e0b' },
+        { name: 'Deudas Pendientes', value: Math.max(0, totalDebts), color: '#ef4444' },
+      ].filter(d => d.value > 0);
+    } catch (error) {
+      console.error('Error calculating pie data:', error);
+      return [];
+    }
+  })();
 
   return (
     <div className="space-y-4 md:space-y-6">
