@@ -44,10 +44,10 @@ Se ha agregado un menú dropdown en la esquina superior derecha de la aplicació
 
 ---
 
-### 2. **Panel de Administración (Exclusivo para "hugo leon")**
+### 2. **Panel de Administración (Exclusivo para "Dome4437")**
 
 #### 🔐 Acceso Restringido
-- **Usuario autorizado**: Solo el usuario con username "hugo leon" o "hugoleon" (sin importar mayúsculas/minúsculas)
+- **Usuario autorizado**: Solo el usuario con username "Dome4437" (sin importar mayúsculas/minúsculas)
 - **Ubicación**: Menú de 3 puntos → "Panel de Administración"
 - **Seguridad**: Si otro usuario intenta acceder, verá un mensaje de "Acceso Restringido"
 
@@ -123,12 +123,12 @@ Componente del menú dropdown con:
 - Estado para controlar apertura/cierre
 - Detección de clicks fuera del menú
 - Funciones de exportar/importar datos
-- Verificación de super admin (hugo leon)
+- Verificación de super admin (Dome4437)
 - Animaciones con Framer Motion
 
 #### 2. **src/components/AdminPanel.tsx** (NUEVO)
 Panel de administración completo con:
-- Verificación de permisos (solo hugo leon)
+- Verificación de permisos (solo Dome4437)
 - Vista de lista de usuarios
 - Vista detallada por usuario
 - Estadísticas en tiempo real
@@ -160,8 +160,7 @@ Cambios realizados:
 ### Verificación de Super Admin
 ```typescript
 const isSuperAdmin = 
-  user.username.toLowerCase() === 'hugo leon' || 
-  user.username.toLowerCase() === 'hugoleon';
+  user.username.toLowerCase() === 'dome4437';
 ```
 
 ### Protección del Panel de Administración
@@ -229,7 +228,7 @@ const isSuperAdmin =
 5. La página se recargará con los nuevos datos
 
 ### Acceder al Panel de Administración
-1. Inicia sesión con el usuario "hugo leon"
+1. Inicia sesión con el usuario "Dome4437"
 2. Haz click en el icono de 3 puntos (⋮)
 3. Selecciona "Panel de Administración"
 4. Explora los datos de todos los usuarios
@@ -281,7 +280,7 @@ const isSuperAdmin =
 - La página se recargará automáticamente
 
 ### Sobre el Panel de Administración
-- Solo accesible para "hugo leon"
+- Solo accesible para "Dome4437"
 - Puede ver datos de TODOS los usuarios
 - No puede modificar datos de otros usuarios (solo ver)
 - Útil para soporte y supervisión

@@ -13,8 +13,8 @@ export default function UserMenu({ store, onOpenAdmin }: UserMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const user = store.getCurrentUser()!;
   
-  // Verificar si es el usuario "hugo leon" (admin especial)
-  const isSuperAdmin = user.username.toLowerCase() === 'hugo leon' || user.username.toLowerCase() === 'hugoleon';
+  // Verificar si es el usuario admin especial
+  const isSuperAdmin = user.username.toLowerCase() === 'dome4437';
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

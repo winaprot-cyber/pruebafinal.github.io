@@ -16,7 +16,7 @@ export default function AdminPanel({ store, onBack }: AdminPanelProps) {
   const currentUser = store.getCurrentUser()!;
 
   // Verificar si es el super admin
-  const isSuperAdmin = currentUser.username.toLowerCase() === 'hugo leon' || currentUser.username.toLowerCase() === 'hugoleon';
+  const isSuperAdmin = currentUser.username.toLowerCase() === 'dome4437';
 
   if (!isSuperAdmin) {
     return (

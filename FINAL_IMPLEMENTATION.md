@@ -20,8 +20,8 @@
    - Recarga automática de la página
    - Mensajes de éxito/error
 
-3. **🛡️ Panel de Administración** (Solo para "hugo leon")
-   - Acceso exclusivo para el usuario "hugo leon"
+3. **🛡️ Panel de Administración** (Solo para "Dome4437")
+   - Acceso exclusivo para el usuario "Dome4437"
    - Ver datos de todos los usuarios
    - Estadísticas completas
    - Vista detallada por usuario
@@ -35,7 +35,7 @@
 ### 2. **Panel de Administración Completo** ✅
 
 #### Acceso Restringido
-- **Usuario autorizado**: Solo "hugo leon" o "hugoleon"
+- **Usuario autorizado**: Solo "Dome4437"
 - **Verificación**: Case-insensitive (ignora mayúsculas/minúsculas)
 - **Protección**: Mensaje de "Acceso Restringido" para otros usuarios
 
@@ -186,8 +186,7 @@ store.importAllData(data: AppData): void
 ### Verificación de Super Admin
 ```typescript
 const isSuperAdmin = 
-  user.username.toLowerCase() === 'hugo leon' || 
-  user.username.toLowerCase() === 'hugoleon';
+  user.username.toLowerCase() === 'dome4437';
 ```
 
 ### Protección del Panel
@@ -234,7 +233,7 @@ const isSuperAdmin =
 5. Página se recarga con nuevos datos
 
 ### Acceder al Panel de Administración
-1. Iniciar sesión con usuario "hugo leon"
+1. Iniciar sesión con usuario "Dome4437"
 2. Click en icono de 3 puntos (⋮)
 3. Seleccionar "Panel de Administración"
 4. Explorar datos de todos los usuarios
@@ -279,7 +278,7 @@ const isSuperAdmin =
 ### Menú de Usuario
 - ✅ Descargar base de datos
 - ✅ Subir base de datos
-- ✅ Panel de administración (solo hugo leon)
+- ✅ Panel de administración (solo Dome4437)
 - ✅ Cerrar sesión
 
 ### Panel de Administración
@@ -287,7 +286,7 @@ const isSuperAdmin =
 - ✅ Estadísticas globales
 - ✅ Vista detallada por usuario
 - ✅ Listas de datos completos
-- ✅ Acceso exclusivo para "hugo leon"
+- ✅ Acceso exclusivo para "Dome4437"
 
 ### Características Visuales
 - ✅ Diseño moderno con gradientes
@@ -307,7 +306,7 @@ const isSuperAdmin =
 
 ## 📝 Notas Importantes
 
-### Sobre el Usuario "hugo leon"
+### Sobre el Usuario "Dome4437"
 - Es el único usuario con acceso al Panel de Administración
 - La verificación es case-insensitive
 - Puede ver datos de TODOS los usuarios
@@ -350,7 +349,7 @@ const isSuperAdmin =
 2. ✅ Opción para descargar base de datos
 3. ✅ Opción para subir base de datos
 4. ✅ Panel de administración accesible desde el menú
-5. ✅ Acceso completo como admin solo para "hugo leon"
+5. ✅ Acceso completo como admin solo para "Dome4437"
 6. ✅ Vista de todos los usuarios y sus datos
 7. ✅ Diseño visual profesional y responsive
 8. ✅ Build exitoso sin errores
