@@ -582,6 +582,14 @@ export function useStore() {
     return data.monthlyReports.filter(r => r.userId === data.currentUser!.id);
   };
 
+  // Obtener reporte específico por mes y año
+  const getMonthlyReport = (month: number, year: number): MonthlyReport | null => {
+    if (!data.currentUser) return null;
+    return data.monthlyReports.find(r => 
+      r.userId === data.currentUser!.id && r.month === month && r.year === year
+    ) || null;
+  };
+
   // Admin functions
   const getAllUsers = (): User[] => {
     return data.users;
@@ -690,6 +698,7 @@ export function useStore() {
     updateSelectedYear,
     generateMonthlyReport,
     getMonthlyReports,
+    getMonthlyReport,
     getAllUsers,
     getUserData,
     getUserTimeEntries,

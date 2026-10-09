@@ -96,10 +96,12 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-        <PieIcon size={24} className="text-purple-400" />
-        Balance Personal
-      </h2>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+          <PieIcon size={24} className="text-purple-400" />
+          Balance Personal
+        </h2>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-xl p-3 md:p-4">

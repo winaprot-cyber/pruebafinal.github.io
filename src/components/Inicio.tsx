@@ -152,6 +152,14 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Title */}
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+          <Clock size={24} className="text-blue-400" />
+          Control Biométrico
+        </h2>
+      </div>
+
       {/* Week Navigation */}
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
         <div className="flex items-center justify-between">

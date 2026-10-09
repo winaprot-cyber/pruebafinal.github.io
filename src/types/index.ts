@@ -63,6 +63,7 @@ export interface Discount {
   interestRate?: number;
   loanAmount?: number;
   loanPayments?: LoanPayment[];
+  customInstallments?: number[];
 }
 
 export interface LoanPayment {

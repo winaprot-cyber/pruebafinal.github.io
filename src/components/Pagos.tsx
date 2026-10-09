@@ -96,11 +96,12 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <CreditCard size={24} className="text-blue-400" />
-          Pagos y Proyección - {format(new Date(), 'MMMM yyyy', { locale: es })}
-        </h2>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+            <CreditCard size={24} className="text-blue-400" />
+            Pagos y Proyección - {format(new Date(), 'MMMM yyyy', { locale: es })}
+          </h2>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <select value={selectedYear} onChange={(e) => { store.updateSelectedYear(parseInt(e.target.value)); store.updateSelectedWeeks([]); }} className="px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50">
             <option value={2025}>2025</option>
@@ -111,6 +112,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
             <Settings size={16} /> Config
           </button>
         </div>
+      </div>
       </div>
 
       <AnimatePresence>
@@ -182,7 +184,7 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
       <div className="card-solid rounded-xl p-4 md:p-6">
         <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2 text-white">
           <DollarSign size={20} className="text-emerald-400" />
-          Proyección - Año {selectedYear}
+          Proyección del Mes Actual
         </h3>
 
         <div className="mb-4">

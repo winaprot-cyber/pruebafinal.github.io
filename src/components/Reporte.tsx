@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { FileText, TrendingDown, Calendar } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, parseISO, startOfMonth, endOfMonth, eachWeekOfInterval, addWeeks, getWeek } from 'date-fns';
+import { FileText, TrendingDown, Calendar, Lock } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, parseISO, startOfMonth, endOfMonth, eachWeekOfInterval, addWeeks, subMonths, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { applyRule45h, formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
+import type { MonthlyReport } from '../types';
 
 type Period = 'weekly' | 'monthly' | 'quarterly';
+type ViewMode = 'current' | 'historical';
 
 export default function Reporte({ store }: { store: ReturnType<typeof useStore> }) {
   const [period, setPeriod] = useState<Period>('weekly');
   const [monthOffset, setMonthOffset] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('current');
+  const [selectedHistoricalReport, setSelectedHistoricalReport] = useState<MonthlyReport | null>(null);
 
   const today = new Date();
   const selectedMonth = addWeeks(startOfMonth(today), monthOffset * 4);
@@ -21,6 +25,25 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
 
   const selectedWeeks = store.data.selectedWeeks;
   const weeks = selectedWeeks.length > 0 ? allWeeks.filter((weekStart, i) => selectedWeeks.includes(i)) : allWeeks;
+
+  // Generar reporte del mes anterior automáticamente
+  useEffect(() => {
+    const lastMonth = subMonths(today, 1);
+    const lastMonthNumber = lastMonth.getMonth();
+    const lastMonthYear = lastMonth.getFullYear();
+    
+    // Verificar si ya existe un reporte para el mes anterior
+    const existingReport = store.getMonthlyReport(lastMonthNumber, lastMonthYear);
+    if (!existingReport) {
+      store.generateMonthlyReport(lastMonthNumber, lastMonthYear);
+    }
+  }, []);
+
+  // Obtener reportes históricos
+  const historicalReports = store.getMonthlyReports().sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    return b.month - a.month;
+  });
 
   const weeklyData = weeks.map((weekStart, i) => {
     const rule = applyRule45h(store.getUserTimeEntries(), store.getUserHolidays(), weekStart);
@@ -53,17 +76,174 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <FileText size={24} className="text-blue-400" />
-          Reporte de Marcación
-        </h2>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+            <FileText size={24} className="text-blue-400" />
+            Reporte de Marcación
+          </h2>
+        <div className="flex gap-2 flex-wrap">
+          <button 
+            onClick={() => { setViewMode('current'); setSelectedHistoricalReport(null); }}
+            className={`px-3 py-1.5 rounded-lg text-xs transition ${
+              viewMode === 'current' 
+                ? 'bg-blue-500/30 border border-blue-500/50 text-blue-300' 
+                : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50'
+            }`}
+          >
+            Mes Actual
+          </button>
+          <button 
+            onClick={() => setViewMode('historical')}
+            className={`px-3 py-1.5 rounded-lg text-xs transition ${
+              viewMode === 'historical' 
+                ? 'bg-purple-500/30 border border-purple-500/50 text-purple-300' 
+                : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600/50'
+            }`}
+          >
+            <Lock size={14} className="inline mr-1" />
+            Meses Anteriores
+          </button>
+        </div>
+      </div>
+      </div>
+
+      {/* Selector de reportes históricos */}
+      {viewMode === 'historical' && (
+        <div className="card-solid rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <Lock size={16} className="text-purple-400" />
+            Reportes Históricos (Solo Lectura)
+          </h3>
+          {historicalReports.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-4">No hay reportes históricos disponibles</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {historicalReports.map(report => (
+                <button
+                  key={report.id}
+                  onClick={() => setSelectedHistoricalReport(report)}
+                  className={`p-3 rounded-lg text-left transition border ${
+                    selectedHistoricalReport?.id === report.id
+                      ? 'bg-purple-500/20 border-purple-500/50'
+                      : 'bg-slate-700/50 border-slate-600/50 hover:bg-slate-700/80'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {format(new Date(report.year, report.month), 'MMMM yyyy', { locale: es })}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {report.totalHours.toFixed(1)}h • {formatCurrency(report.netPayable)}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Creado: {new Date(report.createdAt).toLocaleDateString('es-EC')}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Controles del mes actual */}
+      {viewMode === 'current' && (
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setMonthOffset(o => o - 1)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">← Mes ant.</button>
           <button onClick={() => setMonthOffset(0)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">Actual</button>
           <button onClick={() => setMonthOffset(o => o + 1)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">Mes sig. →</button>
         </div>
-      </div>
+      )}
+
+      {/* Vista de reporte histórico */}
+      {viewMode === 'historical' && selectedHistoricalReport && (
+        <div className="space-y-4">
+          <div className="card-elevated rounded-xl p-4 border-2 border-purple-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Lock size={20} className="text-purple-400" />
+                {format(new Date(selectedHistoricalReport.year, selectedHistoricalReport.month), 'MMMM yyyy', { locale: es })}
+              </h3>
+              <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded border border-purple-500/30">
+                Solo Lectura
+              </span>
+            </div>
+            
+            {/* Estadísticas del reporte */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <p className="text-xs text-slate-400">Total Horas</p>
+                <p className="text-xl font-bold text-white">{selectedHistoricalReport.totalHours.toFixed(1)}h</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <p className="text-xs text-slate-400">Horas Extra</p>
+                <p className="text-xl font-bold text-yellow-400">{selectedHistoricalReport.totalOvertime.toFixed(1)}h</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <p className="text-xs text-slate-400">Marcaciones</p>
+                <p className="text-xl font-bold text-blue-400">{selectedHistoricalReport.timeEntries.length}</p>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <p className="text-xs text-slate-400">Neto a Recibir</p>
+                <p className="text-xl font-bold text-emerald-400">{formatCurrency(selectedHistoricalReport.netPayable)}</p>
+              </div>
+            </div>
+
+            {/* Detalles del reporte */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <h4 className="text-sm font-semibold text-white mb-2">Marcaciones ({selectedHistoricalReport.timeEntries.length})</h4>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {selectedHistoricalReport.timeEntries.slice(0, 10).map(entry => (
+                    <div key={entry.id} className="flex justify-between text-xs bg-slate-800/50 rounded px-2 py-1">
+                      <span className="text-slate-300">{new Date(entry.date).toLocaleDateString('es-EC')}</span>
+                      <span className="text-white font-medium">{entry.hours.toFixed(2)}h</span>
+                    </div>
+                  ))}
+                  {selectedHistoricalReport.timeEntries.length > 10 && (
+                    <p className="text-xs text-slate-500 text-center">... y {selectedHistoricalReport.timeEntries.length - 10} más</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <h4 className="text-sm font-semibold text-white mb-2">Bonos ({selectedHistoricalReport.bonuses.length})</h4>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {selectedHistoricalReport.bonuses.map(bonus => (
+                    <div key={bonus.id} className="flex justify-between text-xs bg-slate-800/50 rounded px-2 py-1">
+                      <span className="text-slate-300">{bonus.name}</span>
+                      <span className="text-emerald-400 font-medium">{formatCurrency(bonus.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <h4 className="text-sm font-semibold text-white mb-2">Descuentos ({selectedHistoricalReport.discounts.length})</h4>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {selectedHistoricalReport.discounts.map(discount => (
+                    <div key={discount.id} className="flex justify-between text-xs bg-slate-800/50 rounded px-2 py-1">
+                      <span className="text-slate-300">{discount.name}</span>
+                      <span className="text-red-400 font-medium">{formatCurrency(discount.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
+                <h4 className="text-sm font-semibold text-white mb-2">Gastos ({selectedHistoricalReport.expenses.length})</h4>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {selectedHistoricalReport.expenses.map(expense => (
+                    <div key={expense.id} className="flex justify-between text-xs bg-slate-800/50 rounded px-2 py-1">
+                      <span className="text-slate-300">{expense.name}</span>
+                      <span className="text-orange-400 font-medium">{formatCurrency(expense.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
         <div className="flex gap-2 overflow-x-auto pb-1">

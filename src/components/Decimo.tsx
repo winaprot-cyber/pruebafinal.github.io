@@ -68,17 +68,19 @@ export default function Decimo({ store }: { store: ReturnType<typeof useStore> }
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <Calendar size={24} className="text-cyan-400" />
-            Décimo Tercero
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Periodo: Diciembre {currentYear - 1} - Noviembre {currentYear}</p>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+              <Calendar size={24} className="text-cyan-400" />
+              Décimo Tercero
+            </h2>
+            <p className="text-xs text-slate-300 mt-1">Periodo: Diciembre {currentYear - 1} - Noviembre {currentYear}</p>
+          </div>
+          <button onClick={() => { setShowForm(true); setEditingId(null); setBaseSalary(''); setHours50(''); setHours100(''); setTotalAmount(''); }} className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 rounded-lg text-cyan-300 text-sm w-full sm:w-auto justify-center">
+            <Plus size={14} /> Ingresar / Editar
+          </button>
         </div>
-        <button onClick={() => { setShowForm(true); setEditingId(null); setBaseSalary(''); setHours50(''); setHours100(''); setTotalAmount(''); }} className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/30 px-3 py-2 rounded-lg text-cyan-300 text-sm w-full sm:w-auto justify-center">
-          <Plus size={14} /> Ingresar / Editar
-        </button>
       </div>
 
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gradient-to-br from-cyan-500/20 to-blue-600/10 border border-cyan-500/30 rounded-xl p-4 md:p-6 text-center">

@@ -35,6 +35,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
   const [loanPaymentPhoto, setLoanPaymentPhoto] = useState<string>('');
 
   const [expandedDiscountId, setExpandedDiscountId] = useState<string | null>(null);
+  const [editingInstallments, setEditingInstallments] = useState<Record<string, number[]>>({});
 
   const base = store.getSalaryConfig().baseSalary;
   const { iessAporteActive, saludConyugeActive, fondosReservaActive } = store.getSalaryConfig();
@@ -140,16 +141,92 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     await shareAsImageWhatsApp(receiptData, `${type.toLowerCase()}-${itemData.name}`);
   };
 
+  // Función para calcular cuotas según tipo de amortización
+  const calculateInstallments = (discount: Discount): number[] => {
+    if (!discount.loanAmount || !discount.totalMonths || !discount.interestRate) {
+      return [];
+    }
+
+    const principal = discount.loanAmount;
+    const months = discount.totalMonths;
+    const annualRate = discount.interestRate / 100;
+    const monthlyRate = annualRate / 12;
+    const installments: number[] = [];
+
+    if (discount.amortizationType === 'alemana') {
+      // Amortización Alemana: capital constante + intereses decrecientes
+      const capitalPerMonth = principal / months;
+      let remainingPrincipal = principal;
+      
+      for (let i = 0; i < months; i++) {
+        const interest = remainingPrincipal * monthlyRate;
+        const installment = capitalPerMonth + interest;
+        installments.push(Math.round(installment * 100) / 100);
+        remainingPrincipal -= capitalPerMonth;
+      }
+    } else {
+      // Amortización Francesa: cuota fija
+      if (monthlyRate === 0) {
+        const fixedInstallment = principal / months;
+        for (let i = 0; i < months; i++) {
+          installments.push(Math.round(fixedInstallment * 100) / 100);
+        }
+      } else {
+        const fixedInstallment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+        for (let i = 0; i < months; i++) {
+          installments.push(Math.round(fixedInstallment * 100) / 100);
+        }
+      }
+    }
+
+    return installments;
+  };
+
+  // Función para guardar cuotas personalizadas
+  const saveCustomInstallments = (discountId: string, installments: number[]) => {
+    const discount = store.getUserDiscounts().find(d => d.id === discountId);
+    if (discount) {
+      store.updateDiscount(discountId, {
+        customInstallments: installments,
+      });
+      setEditingInstallments(prev => {
+        const newState = { ...prev };
+        delete newState[discountId];
+        return newState;
+      });
+    }
+  };
+
+  // Función para iniciar edición de cuotas
+  const startEditingInstallments = (discount: Discount) => {
+    const calculated = discount.customInstallments || calculateInstallments(discount);
+    setEditingInstallments(prev => ({
+      ...prev,
+      [discount.id]: [...calculated],
+    }));
+  };
+
+  // Función para actualizar una cuota específica
+  const updateInstallment = (discountId: string, index: number, value: number) => {
+    setEditingInstallments(prev => {
+      const installments = [...(prev[discountId] || [])];
+      installments[index] = value;
+      return { ...prev, [discountId]: installments };
+    });
+  };
+
   const regularBonuses = store.getUserBonuses().filter(b => !b.isSpecial);
   const regularDiscounts = store.getUserDiscounts().filter(d => !d.isSpecial);
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <Wallet size={24} className="text-emerald-400" />
-          Finanzas
-        </h2>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+            <Wallet size={24} className="text-emerald-400" />
+            Finanzas
+          </h2>
+        </div>
       </div>
 
       {/* Bonuses Section */}
@@ -179,9 +256,21 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         <div className="space-y-2">
           {regularBonuses.map(bonus => (
             <div key={bonus.id} className="flex items-center justify-between bg-slate-700/80 rounded-lg px-3 md:px-4 py-3 border border-slate-600/50">
-              <div>
-                <p className="text-sm font-semibold text-white">{bonus.name}</p>
-                <p className="text-xs text-slate-300 mt-1">{formatCurrency(bonus.amount)}</p>
+              <div className="flex items-center gap-3 flex-1">
+                <button
+                  onClick={() => store.updateBonus(bonus.id, { active: !bonus.active })}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${
+                    bonus.active ? 'bg-emerald-500' : 'bg-slate-600'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    bonus.active ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <div>
+                  <p className={`text-sm font-semibold ${bonus.active ? 'text-white' : 'text-slate-500'}`}>{bonus.name}</p>
+                  <p className={`text-xs mt-1 ${bonus.active ? 'text-slate-300' : 'text-slate-500'}`}>{formatCurrency(bonus.amount)}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => store.removeBonus(bonus.id)} className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded"><Trash2 size={14} /></button>
@@ -354,6 +443,83 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                   <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded" title="Compartir"><Share2 size={14} /></button>
                 </div>
               </div>
+              {/* Sección de edición de cuotas para préstamos quirografarios */}
+              {expandedDiscountId === discount.id && discount.loanType === 'quirografario' && discount.totalMonths && (
+                <div className="mt-3 pt-3 border-t border-slate-600/50">
+                  {editingInstallments[discount.id] ? (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-slate-300 font-medium">Editar Cuotas (Manual):</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveCustomInstallments(discount.id, editingInstallments[discount.id])}
+                            className="text-xs bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded text-emerald-300 hover:bg-emerald-500/30"
+                          >
+                            ✓ Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditingInstallments(prev => {
+                              const newState = { ...prev };
+                              delete newState[discount.id];
+                              return newState;
+                            })}
+                            className="text-xs bg-slate-600/30 px-2 py-1 rounded text-slate-400 hover:bg-slate-600/50"
+                          >
+                            ✗ Cancelar
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1 max-h-60 overflow-y-auto">
+                        {editingInstallments[discount.id].map((installment, index) => (
+                          <div key={index} className="flex items-center gap-2 bg-slate-700/80 rounded px-2 py-1 text-xs border border-slate-600/50">
+                            <span className="text-blue-400 font-bold w-8">#{index + 1}</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={installment}
+                              onChange={(e) => updateInstallment(discount.id, index, parseFloat(e.target.value) || 0)}
+                              className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                            />
+                            <span className="text-slate-400 text-xs">USD</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-slate-300 font-medium">Cuotas del Préstamo:</p>
+                        <button
+                          onClick={() => startEditingInstallments(discount)}
+                          className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 hover:bg-blue-500/30"
+                        >
+                          ✎ Editar Cuotas
+                        </button>
+                      </div>
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {(discount.customInstallments || calculateInstallments(discount)).map((installment, index) => {
+                          const isPaid = index < (discount.paymentsMade || 0);
+                          return (
+                            <div key={index} className={`flex items-center justify-between rounded px-2 py-1 text-xs border ${
+                              isPaid 
+                                ? 'bg-emerald-500/10 border-emerald-500/30' 
+                                : 'bg-slate-700/80 border-slate-600/50'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-bold ${isPaid ? 'text-emerald-400' : 'text-blue-400'}`}>#{index + 1}</span>
+                                <span className={`font-medium ${isPaid ? 'text-emerald-300' : 'text-white'}`}>{formatCurrency(installment)}</span>
+                                {isPaid && <span className="text-emerald-400 text-xs">✓ Pagado</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Pagos registrados */}
               {expandedDiscountId === discount.id && discount.loanPayments && discount.loanPayments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-slate-600/50">
                   <p className="text-xs text-slate-300 font-medium mb-2">Pagos registrados:</p>

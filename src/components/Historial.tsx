@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Clock, DollarSign, Calendar, CreditCard, AlertTriangle, TrendingUp, Filter, Trash2 } from 'lucide-react';
+import { Search, Clock, DollarSign, Calendar, CreditCard, AlertTriangle, TrendingUp, Filter, Trash2, History } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '../utils/calculations';
@@ -111,9 +111,14 @@ export default function Historial({ store }: { store: ReturnType<typeof useStore
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Historial Completo</h2>
-        <span className="text-sm text-slate-400">{filtered.length} registros</span>
+      <div className="card-elevated rounded-xl p-4 md:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-white">
+            <History size={24} className="text-blue-400" />
+            Historial Completo
+          </h2>
+          <span className="text-sm text-slate-300">{filtered.length} registros</span>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
