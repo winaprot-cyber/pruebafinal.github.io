@@ -63,25 +63,33 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
-      <header className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold">CB</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <span className="text-white font-bold text-lg">CB</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Control Biométrico</h1>
+              <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Control Biométrico
+              </h1>
               <p className="text-xs text-slate-400">by Hugo León</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-white">{user.name}</p>
-              <p className="text-xs text-slate-400">{user.role === 'admin' ? 'Administrador' : 'Usuario'}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-white">{user.name}</p>
+              <p className="text-xs text-slate-400">
+                {user.role === 'admin' ? (
+                  <span className="text-purple-400">Administrador</span>
+                ) : (
+                  <span className="text-blue-400">Usuario</span>
+                )}
+              </p>
             </div>
             <button
               onClick={store.logout}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2 rounded-lg transition-colors"
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2 rounded-lg transition-all hover:scale-105"
               title="Cerrar sesión"
             >
               <LogOut size={20} />
@@ -91,9 +99,9 @@ export default function App() {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-slate-800/30 backdrop-blur border-b border-slate-700/50">
+      <nav className="bg-slate-800/30 backdrop-blur border-b border-slate-700/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-2 overflow-x-auto py-3">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide py-3">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
@@ -102,7 +110,7 @@ export default function App() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
                     activeTab === tab.id
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30'
                       : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
                   }`}
                 >
@@ -123,12 +131,19 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.3 }}
           >
             {renderContent()}
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-slate-800/50 border-t border-slate-700/50 py-4 mt-8">
+        <p className="text-center text-xs text-slate-500">
+          Control Biométrico v2.0 — Creado por Hugo León — Modo Offline Activo
+        </p>
+      </footer>
     </div>
   );
 }

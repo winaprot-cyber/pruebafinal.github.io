@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AppData, User, TimeEntry, Holiday, Bonus, Discount, Income, Expense, Debt, DecimoEntry, SalaryConfig, MonthlyReport } from '../types';
 
 const STORAGE_KEY = 'biometric_control_data';
+const OLD_DATA_KEY = 'controlBiometrico_data';
 
 const defaultData: AppData = {
   users: [],
@@ -19,6 +20,36 @@ const defaultData: AppData = {
   selectedWeeks: [],
   selectedYear: new Date().getFullYear(),
 };
+
+// Función para migrar datos antiguos al nuevo formato
+function migrateOldData(userId: string): Partial<AppData> {
+  const oldDataStr = localStorage.getItem(OLD_DATA_KEY);
+  if (!oldDataStr) return {};
+  
+  try {
+    const oldData = JSON.parse(oldDataStr);
+    const migrated: Partial<AppData> = {
+      timeEntries: (oldData.timeEntries || []).map((e: any) => ({ ...e, userId })),
+      holidays: (oldData.holidays || []).map((h: any) => ({ ...h, userId })),
+      bonuses: (oldData.bonuses || []).map((b: any) => ({ ...b, userId })),
+      discounts: (oldData.discounts || []).map((d: any) => ({ ...d, userId })),
+      incomes: (oldData.incomes || []).map((i: any) => ({ ...i, userId })),
+      expenses: (oldData.expenses || []).map((e: any) => ({ ...e, userId })),
+      debts: (oldData.debts || []).map((d: any) => ({ ...d, userId })),
+      decimoEntries: (oldData.decimoEntries || []).map((d: any) => ({ ...d, userId })),
+    };
+    
+    // Migrar salary config si existe
+    if (oldData.salaryConfig) {
+      migrated.salaryConfigs = [{ ...oldData.salaryConfig, userId }];
+    }
+    
+    return migrated;
+  } catch (error) {
+    console.error('Error migrating old data:', error);
+    return {};
+  }
+}
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -74,7 +105,25 @@ export function useStore() {
   const login = (username: string, password: string): boolean => {
     const user = data.users.find(u => u.username === username && u.password === password);
     if (user) {
-      setData(prev => ({ ...prev, currentUser: user }));
+      // Migrar datos antiguos si existen y el usuario no tiene datos aún
+      const hasUserData = data.timeEntries.some(e => e.userId === user.id) || 
+                          data.bonuses.some(b => b.userId === user.id) ||
+                          data.discounts.some(d => d.userId === user.id);
+      
+      if (!hasUserData) {
+        const migratedData = migrateOldData(user.id);
+        setData(prev => ({ 
+          ...prev, 
+          currentUser: user,
+          ...migratedData,
+        }));
+        
+        // Eliminar datos antiguos después de migrar
+        localStorage.removeItem(OLD_DATA_KEY);
+      } else {
+        setData(prev => ({ ...prev, currentUser: user }));
+      }
+      
       return true;
     }
     return false;
