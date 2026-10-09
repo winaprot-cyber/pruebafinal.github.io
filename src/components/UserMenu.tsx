@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreVertical, Download, Upload, User, Shield, LogOut } from 'lucide-react';
+import { MoreVertical, Download, Upload, User, Shield, LogOut, Smartphone } from 'lucide-react';
 import type { useStore } from '../store/useStore';
 
 interface UserMenuProps {
@@ -63,6 +63,27 @@ export default function UserMenu({ store, onOpenAdmin }: UserMenuProps) {
       }
     };
     input.click();
+    setIsOpen(false);
+  };
+
+  const handleDownloadAPK = () => {
+    // Abrir PWABuilder en una nueva pestaña para generar el APK
+    const pwabuilderUrl = 'https://www.pwabuilder.com/';
+    window.open(pwabuilderUrl, '_blank');
+    
+    // Mostrar instrucciones
+    alert(
+      '📱 Para generar el APK de Android:\n\n' +
+      '1. Se abrió PWABuilder.com en una nueva pestaña\n' +
+      '2. Ingresa la URL de tu aplicación desplegada\n' +
+      '3. Haz clic en "Package for stores"\n' +
+      '4. Selecciona "Android"\n' +
+      '5. Descarga el archivo APK generado\n\n' +
+      '📖 También puedes ver las instrucciones completas en:\n' +
+      'APK_GUIDE.md en el repositorio del proyecto\n\n' +
+      '⚙️ Alternativa: Usa Android Studio con Bubblewrap\n' +
+      'para mayor control sobre el APK.'
+    );
     setIsOpen(false);
   };
 
@@ -130,6 +151,17 @@ export default function UserMenu({ store, onOpenAdmin }: UserMenuProps) {
                 <div>
                   <p className="text-sm font-medium">Subir Base de Datos</p>
                   <p className="text-xs text-slate-500">Importar datos desde archivo</p>
+                </div>
+              </button>
+
+              <button
+                onClick={handleDownloadAPK}
+                className="w-full flex items-center gap-3 px-4 py-2 text-left text-slate-300 hover:bg-slate-700/50 transition-colors"
+              >
+                <Smartphone size={18} className="text-purple-400" />
+                <div>
+                  <p className="text-sm font-medium">Descargar APK para Android</p>
+                  <p className="text-xs text-slate-500">Instalar como app nativa</p>
                 </div>
               </button>
 
