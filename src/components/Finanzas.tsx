@@ -144,10 +144,10 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
       </div>
 
       {/* Bonuses Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+      <div className="card-solid rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base md:text-lg font-semibold text-emerald-400">Bonos</h3>
-          <button onClick={() => setShowBonusForm(true)} className="flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/30 px-2 md:px-3 py-1 rounded-lg text-emerald-300 text-xs md:text-sm hover:bg-emerald-500/30">
+          <button onClick={() => setShowBonusForm(true)} className="btn-secondary flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm">
             <Plus size={14} /> Agregar Bono
           </button>
         </div>
@@ -155,12 +155,12 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         <AnimatePresence>
           {showBonusForm && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-4">
-              <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
-                <input placeholder="Nombre del bono" value={bonusName} onChange={(e) => setBonusName(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
-                <input type="number" placeholder="Monto" value={bonusAmount} onChange={(e) => setBonusAmount(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+              <div className="bg-slate-700/80 rounded-lg p-4 space-y-3 border border-slate-600/50">
+                <input placeholder="Nombre del bono" value={bonusName} onChange={(e) => setBonusName(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
+                <input type="number" placeholder="Monto" value={bonusAmount} onChange={(e) => setBonusAmount(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
                 <div className="flex gap-2">
-                  <button onClick={handleSaveBonus} className="flex-1 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded text-emerald-300 text-sm">Guardar</button>
-                  <button onClick={() => setShowBonusForm(false)} className="flex-1 bg-slate-600/30 px-3 py-1 rounded text-slate-400 text-sm">Cancelar</button>
+                  <button onClick={handleSaveBonus} className="btn-primary flex-1 px-3 py-1 rounded text-sm">Guardar</button>
+                  <button onClick={() => setShowBonusForm(false)} className="btn-secondary flex-1 px-3 py-1 rounded text-sm">Cancelar</button>
                 </div>
               </div>
             </motion.div>
@@ -169,26 +169,26 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
 
         <div className="space-y-2">
           {regularBonuses.map(bonus => (
-            <div key={bonus.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-3">
+            <div key={bonus.id} className="flex items-center justify-between bg-slate-700/80 rounded-lg px-3 md:px-4 py-3 border border-slate-600/50">
               <div>
-                <p className="text-sm font-medium text-white">{bonus.name}</p>
-                <p className="text-xs text-slate-400">{formatCurrency(bonus.amount)}</p>
+                <p className="text-sm font-semibold text-white">{bonus.name}</p>
+                <p className="text-xs text-slate-300 mt-1">{formatCurrency(bonus.amount)}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => store.removeBonus(bonus.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                <button onClick={() => shareWhatsApp('Bono', bonus)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                <button onClick={() => store.removeBonus(bonus.id)} className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded"><Trash2 size={14} /></button>
+                <button onClick={() => shareWhatsApp('Bono', bonus)} className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded"><Share2 size={14} /></button>
               </div>
             </div>
           ))}
-          {regularBonuses.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay bonos registrados</p>}
+          {regularBonuses.length === 0 && <p className="text-slate-400 text-sm text-center py-4">No hay bonos registrados</p>}
         </div>
       </div>
 
       {/* Discounts Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+      <div className="card-solid rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base md:text-lg font-semibold text-red-400">Descuentos</h3>
-          <button onClick={() => setShowDiscountForm(true)} className="flex items-center gap-1 bg-red-500/20 border border-red-500/30 px-2 md:px-3 py-1 rounded-lg text-red-300 text-xs md:text-sm hover:bg-red-500/30">
+          <button onClick={() => setShowDiscountForm(true)} className="btn-secondary flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm">
             <Plus size={14} /> Agregar Descuento
           </button>
         </div>
@@ -196,12 +196,12 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
         <AnimatePresence>
           {showDiscountForm && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mb-4">
-              <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
-                <input placeholder="Nombre del descuento" value={discountName} onChange={(e) => setDiscountName(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
-                <input type="number" placeholder="Monto" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+              <div className="bg-slate-700/80 rounded-lg p-4 space-y-3 border border-slate-600/50">
+                <input placeholder="Nombre del descuento" value={discountName} onChange={(e) => setDiscountName(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
+                <input type="number" placeholder="Monto" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
                 <div className="flex gap-2">
-                  <button onClick={handleSaveDiscount} className="flex-1 bg-red-500/20 border border-red-500/30 px-3 py-1 rounded text-red-300 text-sm">Guardar</button>
-                  <button onClick={() => setShowDiscountForm(false)} className="flex-1 bg-slate-600/30 px-3 py-1 rounded text-slate-400 text-sm">Cancelar</button>
+                  <button onClick={handleSaveDiscount} className="btn-primary flex-1 px-3 py-1 rounded text-sm">Guardar</button>
+                  <button onClick={() => setShowDiscountForm(false)} className="btn-secondary flex-1 px-3 py-1 rounded text-sm">Cancelar</button>
                 </div>
               </div>
             </motion.div>
@@ -210,26 +210,26 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
 
         <div className="space-y-2">
           {regularDiscounts.map(discount => (
-            <div key={discount.id} className="bg-slate-700/30 rounded-lg p-3">
+            <div key={discount.id} className="bg-slate-700/80 rounded-lg p-3 border border-slate-600/50">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 cursor-pointer" onClick={() => setExpandedDiscountId(expandedDiscountId === discount.id ? null : discount.id)}>
-                  <p className="text-sm font-medium text-white">{discount.name}</p>
-                  <p className="text-xs text-slate-400">{formatCurrency(discount.amount)}</p>
+                  <p className="text-sm font-semibold text-white">{discount.name}</p>
+                  <p className="text-xs text-slate-300 mt-1">{formatCurrency(discount.amount)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => openLoanPaymentModal(discount)} className="text-emerald-400 hover:text-emerald-300"><Plus size={14} /></button>
-                  <button onClick={() => store.removeDiscount(discount.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                  <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                  <button onClick={() => openLoanPaymentModal(discount)} className="text-emerald-400 hover:text-emerald-300 p-1 hover:bg-emerald-500/20 rounded"><Plus size={14} /></button>
+                  <button onClick={() => store.removeDiscount(discount.id)} className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded"><Trash2 size={14} /></button>
+                  <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded"><Share2 size={14} /></button>
                 </div>
               </div>
               {expandedDiscountId === discount.id && discount.loanPayments && discount.loanPayments.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-slate-600/50">
-                  <p className="text-xs text-slate-400 font-medium mb-2">Pagos registrados:</p>
+                  <p className="text-xs text-slate-300 font-medium mb-2">Pagos registrados:</p>
                   <div className="space-y-1">
                     {discount.loanPayments.map((payment) => (
-                      <div key={payment.id} className="flex items-center justify-between bg-slate-700/30 rounded px-2 py-1 text-xs">
+                      <div key={payment.id} className="flex items-center justify-between bg-slate-700/80 rounded px-2 py-1 text-xs border border-slate-600/50">
                         <span className="text-blue-400 font-bold">#{payment.paymentNumber}</span>
-                        <span className="text-white">{formatCurrency(payment.amount)}</span>
+                        <span className="text-white font-medium">{formatCurrency(payment.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -237,7 +237,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
               )}
             </div>
           ))}
-          {regularDiscounts.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay descuentos registrados</p>}
+          {regularDiscounts.length === 0 && <p className="text-slate-400 text-sm text-center py-4">No hay descuentos registrados</p>}
         </div>
       </div>
     </div>

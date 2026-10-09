@@ -181,43 +181,43 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-xl p-4">
-          <p className="text-xs md:text-sm text-blue-300">Horas Semanales</p>
-          <p className="text-2xl md:text-3xl font-bold text-white">{totalWeekHours.toFixed(1)}h</p>
-          <div className="mt-2 bg-slate-700/50 rounded-full h-2">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card-elevated rounded-xl p-4">
+          <p className="text-xs md:text-sm text-blue-400 font-semibold">Horas Semanales</p>
+          <p className="text-2xl md:text-3xl font-bold text-white mt-1">{totalWeekHours.toFixed(1)}h</p>
+          <div className="mt-2 bg-slate-700 rounded-full h-2">
             <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(percentage, 100)}%` }} className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full" />
           </div>
-          <p className="text-xs text-slate-400 mt-1">{percentage.toFixed(0)}% de 45h</p>
+          <p className="text-xs text-slate-300 mt-1">{percentage.toFixed(0)}% de 45h</p>
         </motion.div>
 
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-xl p-4">
-          <p className="text-xs md:text-sm text-purple-300">Horas Extra (Regla 45h)</p>
-          <p className="text-2xl md:text-3xl font-bold text-white">{rule45.totalExtra.toFixed(1)}h</p>
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }} className="card-elevated rounded-xl p-4">
+          <p className="text-xs md:text-sm text-purple-400 font-semibold">Horas Extra (Regla 45h)</p>
+          <p className="text-2xl md:text-3xl font-bold text-white mt-1">{rule45.totalExtra.toFixed(1)}h</p>
           <div className="flex gap-2 md:gap-3 mt-2 text-xs">
-            <span className="text-yellow-300">50%: {rule45.totalExtra50.toFixed(1)}h</span>
-            <span className="text-red-300">100%: {rule45.totalExtra100.toFixed(1)}h</span>
+            <span className="text-yellow-400 font-medium">50%: {rule45.totalExtra50.toFixed(1)}h</span>
+            <span className="text-red-400 font-medium">100%: {rule45.totalExtra100.toFixed(1)}h</span>
           </div>
         </motion.div>
 
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-xl p-4">
-          <p className="text-xs md:text-sm text-emerald-300">Feriados del Mes</p>
-          <p className="text-2xl md:text-3xl font-bold text-white">{currentMonthHolidays.length}</p>
-          <p className="text-xs text-slate-400 mt-2 truncate">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="card-elevated rounded-xl p-4">
+          <p className="text-xs md:text-sm text-emerald-400 font-semibold">Feriados del Mes</p>
+          <p className="text-2xl md:text-3xl font-bold text-white mt-1">{currentMonthHolidays.length}</p>
+          <p className="text-xs text-slate-300 mt-2 truncate">
             {currentMonthHolidays.map(h => h.name).join(', ') || 'Sin feriados'}
           </p>
         </motion.div>
       </div>
 
       {/* Time Entry Form */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+      <div className="card-solid rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2 text-white">
           <Clock size={20} className="text-blue-400" />
           Registrar Marcación
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <div>
-            <label className="text-xs md:text-sm text-slate-400 block mb-1">Fecha</label>
+            <label className="label-clear text-xs md:text-sm block mb-1">Fecha</label>
             <input type="date" value={selectedDate} onChange={(e) => {
               setSelectedDate(e.target.value);
               const existing = timeEntries.find(en => en.date === e.target.value);
@@ -230,21 +230,21 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
                 setExitTime('');
                 setEditingEntry(null);
               }
-            }} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+            }} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="text-xs md:text-sm text-slate-400 block mb-1">Hora de Ingreso</label>
-            <input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+            <label className="label-clear text-xs md:text-sm block mb-1">Hora de Ingreso</label>
+            <input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="text-xs md:text-sm text-slate-400 block mb-1">Hora de Salida</label>
-            <input type="time" value={exitTime} onChange={(e) => setExitTime(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+            <label className="label-clear text-xs md:text-sm block mb-1">Hora de Salida</label>
+            <input type="time" value={exitTime} onChange={(e) => setExitTime(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
           </div>
           <div className="flex items-end gap-2">
-            <button onClick={() => entryPhotoRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 md:gap-2 bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 md:px-3 py-2 text-blue-300 hover:bg-blue-500/30 transition text-xs md:text-sm">
+            <button onClick={() => entryPhotoRef.current?.click()} className="btn-secondary flex-1 flex items-center justify-center gap-1 md:gap-2 rounded-lg px-2 md:px-3 py-2 text-xs md:text-sm">
               <Camera size={14} /> <span className="hidden sm:inline">Foto</span> Ingreso
             </button>
-            <button onClick={() => exitPhotoRef.current?.click()} className="flex-1 flex items-center justify-center gap-1 md:gap-2 bg-purple-500/20 border border-purple-500/30 rounded-lg px-2 md:px-3 py-2 text-purple-300 hover:bg-purple-500/30 transition text-xs md:text-sm">
+            <button onClick={() => exitPhotoRef.current?.click()} className="btn-secondary flex-1 flex items-center justify-center gap-1 md:gap-2 rounded-lg px-2 md:px-3 py-2 text-xs md:text-sm">
               <Camera size={14} /> <span className="hidden sm:inline">Foto</span> Salida
             </button>
             <input ref={entryPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoChange(e, 'entry')} />
@@ -271,19 +271,19 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
 
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           {entryTime && (
-            <span className="text-sm text-slate-300">
-              Horas: <strong className="text-white">{calculateHours(entryTime, exitTime || entryTime).toFixed(2)}h</strong>
+            <span className="text-sm text-slate-200">
+              Horas: <strong className="text-white font-bold">{calculateHours(entryTime, exitTime || entryTime).toFixed(2)}h</strong>
             </span>
           )}
-          <button onClick={handleSaveEntry} className="sm:ml-auto w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 px-4 py-2 rounded-lg text-sm font-medium transition">
+          <button onClick={handleSaveEntry} className="btn-primary sm:ml-auto w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm">
             {editingEntry ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Guardar</>}
           </button>
         </div>
       </div>
 
       {/* Weekly Chart */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+      <div className="card-solid rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2 text-white">
           <Calendar size={20} className="text-purple-400" />
           Gráfico Semanal
         </h3>
@@ -307,7 +307,7 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
         </div>
 
         <div className="mt-4 h-36 md:h-48">
-          <p className="text-xs md:text-sm text-slate-400 mb-2">Proyección Semanal (basado en últimas 4 semanas + 1% incremento)</p>
+          <p className="text-xs md:text-sm text-slate-300 mb-2">Proyección Semanal (basado en últimas 4 semanas + 1% incremento)</p>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={projectionData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -322,25 +322,25 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       </div>
 
       {/* Holidays Section */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
+      <div className="card-solid rounded-xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base md:text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-base md:text-lg font-semibold flex items-center gap-2 text-white">
             <Sun size={20} className="text-yellow-400" />
             Feriados ({format(currentWeekStart, 'MMMM yyyy', { locale: es })})
           </h3>
-          <button onClick={() => setShowHolidayForm(!showHolidayForm)} className="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/30 px-2 md:px-3 py-1 rounded-lg text-yellow-300 text-xs md:text-sm hover:bg-yellow-500/30">
+          <button onClick={() => setShowHolidayForm(!showHolidayForm)} className="btn-secondary flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm">
             <Plus size={14} /> Agregar
           </button>
         </div>
 
         {showHolidayForm && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-4 p-3 md:p-4 bg-slate-700/30 rounded-lg space-y-3">
-            <input placeholder="Nombre del feriado (ej: Día de los Muertos)" value={holidayName} onChange={(e) => setHolidayName(e.target.value)} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-4 p-3 md:p-4 bg-slate-700/80 rounded-lg space-y-3">
+            <input placeholder="Nombre del feriado (ej: Día de los Muertos)" value={holidayName} onChange={(e) => setHolidayName(e.target.value)} className="input-solid w-full rounded-lg px-3 py-2 text-sm" />
             
             <div className="space-y-2">
               <div className="flex gap-2">
-                <input type="date" value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
-                <button onClick={handleAddHolidayDate} disabled={!holidayDate} className="bg-blue-500/20 border border-blue-500/30 rounded-lg px-3 py-2 text-blue-300 text-sm hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                <input type="date" value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} className="input-solid flex-1 rounded-lg px-3 py-2 text-sm" />
+                <button onClick={handleAddHolidayDate} disabled={!holidayDate} className="btn-secondary rounded-lg px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   <Plus size={16} />
                 </button>
               </div>
@@ -348,8 +348,8 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
               {holidayDates.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {holidayDates.map((date) => (
-                    <div key={date} className="flex items-center gap-2 bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-1">
-                      <span className="text-yellow-300 text-sm">{format(parseISO(date), 'dd MMM yyyy', { locale: es })}</span>
+                    <div key={date} className="flex items-center gap-2 bg-yellow-500/30 border border-yellow-500/50 rounded-lg px-3 py-1">
+                      <span className="text-yellow-300 text-sm font-medium">{format(parseISO(date), 'dd MMM yyyy', { locale: es })}</span>
                       <button onClick={() => handleRemoveHolidayDate(date)} className="text-yellow-300 hover:text-yellow-200">
                         <X size={14} />
                       </button>
@@ -360,10 +360,10 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
             </div>
             
             <div className="flex gap-2">
-              <button onClick={handleAddHoliday} disabled={!holidayName || (holidayDates.length === 0 && !holidayDate)} className="flex-1 bg-yellow-500/20 border border-yellow-500/30 rounded-lg px-3 py-2 text-yellow-300 text-sm hover:bg-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={handleAddHoliday} disabled={!holidayName || (holidayDates.length === 0 && !holidayDate)} className="btn-primary flex-1 rounded-lg px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 Guardar Feriado {holidayDates.length > 1 ? `(${holidayDates.length} días)` : ''}
               </button>
-              <button onClick={() => { setShowHolidayForm(false); setHolidayName(''); setHolidayDate(''); setHolidayDates([]); }} className="bg-slate-600/30 border border-slate-600 rounded-lg px-3 py-2 text-slate-400 text-sm hover:bg-slate-600/50">
+              <button onClick={() => { setShowHolidayForm(false); setHolidayName(''); setHolidayDate(''); setHolidayDates([]); }} className="btn-secondary rounded-lg px-3 py-2 text-sm">
                 Cancelar
               </button>
             </div>
@@ -372,18 +372,18 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
 
         <div className="space-y-2">
           {currentMonthHolidays.length === 0 ? (
-            <p className="text-slate-500 text-sm">No hay feriados registrados este mes</p>
+            <p className="text-slate-400 text-sm text-center py-4">No hay feriados registrados este mes</p>
           ) : (
             currentMonthHolidays.map(h => (
-              <div key={h.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-2">
+              <div key={h.id} className="flex items-center justify-between bg-slate-700/80 rounded-lg px-3 md:px-4 py-2 border border-slate-600/50">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white text-sm font-medium">{h.name}</span>
+                    <span className="text-white text-sm font-semibold">{h.name}</span>
                     {h.dates && h.dates.length > 1 && (
-                      <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">{h.dates.length} días</span>
+                      <span className="text-xs bg-yellow-500/30 text-yellow-300 px-2 py-0.5 rounded font-medium">{h.dates.length} días</span>
                     )}
                   </div>
-                  <div className="text-slate-400 text-xs mt-1">
+                  <div className="text-slate-300 text-xs mt-1">
                     {h.dates && h.dates.length > 0 ? (
                       <span>{h.dates.map((date, idx) => (
                         <span key={date}>{format(parseISO(date), 'dd MMM', { locale: es })}{idx < (h.dates?.length || 0) - 1 ? ', ' : ''}</span>
@@ -393,7 +393,7 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
                     )}
                   </div>
                 </div>
-                <button onClick={() => store.removeHoliday(h.id)} className="text-red-400 hover:text-red-300 ml-2">
+                <button onClick={() => store.removeHoliday(h.id)} className="text-red-400 hover:text-red-300 ml-2 p-1 hover:bg-red-500/20 rounded">
                   <X size={16} />
                 </button>
               </div>
