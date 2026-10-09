@@ -93,12 +93,19 @@ export function useStore() {
   };
 
   // Time Entries
-  const addTimeEntry = (entry: Omit<TimeEntry, 'id' | 'userId'>) => {
+  const addTimeEntry = (entry: Partial<TimeEntry> & { date: string; entryTime: string; hours: number }) => {
     if (!data.currentUser) return;
     const newEntry: TimeEntry = {
-      ...entry,
-      id: generateId(),
+      id: entry.id || generateId(),
       userId: data.currentUser.id,
+      date: entry.date,
+      entryTime: entry.entryTime,
+      exitTime: entry.exitTime || '',
+      entryPhoto: entry.entryPhoto,
+      exitPhoto: entry.exitPhoto,
+      hours: entry.hours,
+      isHoliday: entry.isHoliday || false,
+      holidayName: entry.holidayName,
     };
     setData(prev => ({
       ...prev,
@@ -121,12 +128,16 @@ export function useStore() {
   };
 
   // Holidays
-  const addHoliday = (holiday: Omit<Holiday, 'id' | 'userId'>) => {
+  const addHoliday = (holiday: Partial<Holiday> & { name: string; date: string; month: number; year: number }) => {
     if (!data.currentUser) return;
     const newHoliday: Holiday = {
-      ...holiday,
-      id: generateId(),
+      id: holiday.id || generateId(),
       userId: data.currentUser.id,
+      name: holiday.name,
+      date: holiday.date,
+      dates: holiday.dates,
+      month: holiday.month,
+      year: holiday.year,
     };
     setData(prev => ({
       ...prev,
@@ -142,12 +153,18 @@ export function useStore() {
   };
 
   // Bonuses
-  const addBonus = (bonus: Omit<Bonus, 'id' | 'userId'>) => {
+  const addBonus = (bonus: Partial<Bonus> & { name: string; amount: number; active: boolean; basedOnSalary: boolean; percentage: number; type: 'bonus' }) => {
     if (!data.currentUser) return;
     const newBonus: Bonus = {
-      ...bonus,
-      id: generateId(),
+      id: bonus.id || generateId(),
       userId: data.currentUser.id,
+      name: bonus.name,
+      amount: bonus.amount,
+      active: bonus.active,
+      basedOnSalary: bonus.basedOnSalary,
+      percentage: bonus.percentage,
+      type: bonus.type,
+      isSpecial: bonus.isSpecial,
     };
     setData(prev => ({
       ...prev,
@@ -170,12 +187,28 @@ export function useStore() {
   };
 
   // Discounts
-  const addDiscount = (discount: Omit<Discount, 'id' | 'userId'>) => {
+  const addDiscount = (discount: Partial<Discount> & { name: string; amount: number; active: boolean; basedOnSalary: boolean; percentage: number; type: 'discount' }) => {
     if (!data.currentUser) return;
     const newDiscount: Discount = {
-      ...discount,
-      id: generateId(),
+      id: discount.id || generateId(),
       userId: data.currentUser.id,
+      name: discount.name,
+      amount: discount.amount,
+      active: discount.active,
+      basedOnSalary: discount.basedOnSalary,
+      percentage: discount.percentage,
+      type: discount.type,
+      isSpecial: discount.isSpecial,
+      loanType: discount.loanType,
+      totalMonths: discount.totalMonths,
+      currentMonth: discount.currentMonth,
+      fixedPayment: discount.fixedPayment,
+      monthlyPaymentAmount: discount.monthlyPaymentAmount,
+      paymentsMade: discount.paymentsMade,
+      amortizationType: discount.amortizationType,
+      interestRate: discount.interestRate,
+      loanAmount: discount.loanAmount,
+      loanPayments: discount.loanPayments,
     };
     setData(prev => ({
       ...prev,
