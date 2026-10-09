@@ -323,6 +323,38 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                           className="bg-gradient-to-r from-blue-500 to-emerald-500 h-1.5 rounded-full"
                         />
                       </div>
+                      
+                      {/* Pago vigente mensual */}
+                      {(discount.paymentsMade || 0) < (discount.totalMonths || 0) && (
+                        <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-yellow-400 font-bold text-xs">💰 Pago Vigente:</span>
+                              <span className="text-white font-semibold text-xs">
+                                Cuota #{(discount.paymentsMade || 0) + 1}
+                              </span>
+                            </div>
+                            <span className="text-yellow-300 font-bold text-sm">
+                              {formatCurrency(calculateInstallment(discount, (discount.paymentsMade || 0) + 1))}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Próximo pago pendiente • {(discount.totalMonths || 0) - (discount.paymentsMade || 0)} cuotas restantes
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Préstamo completado */}
+                      {(discount.paymentsMade || 0) >= (discount.totalMonths || 0) && discount.totalMonths > 0 && (
+                        <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded">
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-400 font-bold text-xs">✅ Préstamo Completado</span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Todas las {discount.totalMonths} cuotas han sido pagadas
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -66,11 +66,9 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       isHoliday,
       holidayName: holiday?.name,
     });
-    setEntryTime('');
-    setExitTime('');
-    setEntryPhoto('');
-    setExitPhoto('');
-    setIsEditing(false);
+    // No limpiar los campos inmediatamente para evitar problemas en móvil
+    // El useEffect se encargará de actualizar el estado cuando cambie la fecha
+    setIsEditing(true);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'entry' | 'exit') => {
