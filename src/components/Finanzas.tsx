@@ -5,6 +5,7 @@ import { formatCurrency, generateId } from '../utils/calculations';
 import { shareAsImageWhatsApp } from '../utils/shareImage';
 import type { useStore } from '../store/useStore';
 import type { Bonus, Discount, LoanPayment } from '../types';
+import PaymentModal from './PaymentModal';
 
 export default function Finanzas({ store }: { store: ReturnType<typeof useStore> }) {
   const [showBonusForm, setShowBonusForm] = useState(false);
@@ -36,6 +37,9 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
 
   const [expandedDiscountId, setExpandedDiscountId] = useState<string | null>(null);
   const [editingInstallments, setEditingInstallments] = useState<Record<string, number[]>>({});
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedDiscountForPaymentModal, setSelectedDiscountForPaymentModal] = useState<Discount | null>(null);
 
   const base = store.getSalaryConfig().baseSalary;
   const { iessAporteActive, saludConyugeActive, fondosReservaActive } = store.getSalaryConfig();
@@ -109,6 +113,27 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
     setLoanPaymentDate(new Date().toISOString().split('T')[0]);
     setLoanPaymentPhoto('');
     setShowLoanPaymentModal(true);
+  };
+
+  const openDiscountPaymentModal = (discount: Discount) => {
+    setSelectedDiscountForPaymentModal(discount);
+    setShowPaymentModal(true);
+  };
+
+  const handleDiscountPayment = (amount: number, isFull: boolean, photo?: string) => {
+    if (!selectedDiscountForPaymentModal) return;
+
+    // Registrar el pago como un loanPayment
+    const payment: LoanPayment = {
+      id: generateId(),
+      discountId: selectedDiscountForPaymentModal.id,
+      paymentNumber: (selectedDiscountForPaymentModal.paymentsMade || 0) + 1,
+      amount,
+      date: new Date().toISOString().split('T')[0],
+      photo,
+    };
+
+    store.addLoanPayment(selectedDiscountForPaymentModal.id, payment);
   };
 
   const handleSaveLoanPayment = () => {
@@ -438,7 +463,7 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
                   )}
                 </div>
                 <div className="flex items-center gap-2 ml-2">
-                  <button onClick={() => openLoanPaymentModal(discount)} className="text-emerald-400 hover:text-emerald-300 p-1 hover:bg-emerald-500/20 rounded" title="Registrar Pago"><Plus size={14} /></button>
+                  <button onClick={() => openDiscountPaymentModal(discount)} className="text-emerald-400 hover:text-emerald-300 p-1 hover:bg-emerald-500/20 rounded" title="Registrar Pago"><Plus size={14} /></button>
                   <button onClick={() => store.removeDiscount(discount.id)} className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded" title="Eliminar"><Trash2 size={14} /></button>
                   <button onClick={() => shareWhatsApp('Descuento', discount)} className="text-green-400 hover:text-green-300 p-1 hover:bg-green-500/20 rounded" title="Compartir"><Share2 size={14} /></button>
                 </div>
@@ -541,6 +566,23 @@ export default function Finanzas({ store }: { store: ReturnType<typeof useStore>
           {regularDiscounts.length === 0 && <p className="text-slate-400 text-sm text-center py-4">No hay descuentos registrados</p>}
         </div>
       </div>
+
+      {/* Payment Modal for Discounts */}
+      {showPaymentModal && selectedDiscountForPaymentModal && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedDiscountForPaymentModal(null);
+          }}
+          title="Pagar Descuento"
+          itemName={selectedDiscountForPaymentModal.name}
+          totalAmount={selectedDiscountForPaymentModal.amount}
+          paidAmount={selectedDiscountForPaymentModal.loanPayments?.reduce((sum, p) => sum + p.amount, 0) || 0}
+          onPayment={handleDiscountPayment}
+          type="discount"
+        />
+      )}
     </div>
   );
 }

@@ -242,10 +242,34 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
 
       {/* Controles del mes actual */}
       {viewMode === 'current' && (
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setMonthOffset(o => o - 1)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">← Mes ant.</button>
-          <button onClick={() => setMonthOffset(0)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">Actual</button>
-          <button onClick={() => setMonthOffset(o => o + 1)} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-xs hover:bg-slate-600/50">Mes sig. →</button>
+        <div className="card-solid rounded-xl p-4">
+          <div className="flex gap-3 flex-wrap justify-center">
+            <button 
+              onClick={() => setMonthOffset(o => o - 1)} 
+              className="btn-secondary px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
+            >
+              <span>←</span>
+              <span>Mes Anterior</span>
+            </button>
+            <button 
+              onClick={() => setMonthOffset(0)} 
+              className="btn-primary px-6 py-2.5 rounded-lg text-sm font-medium"
+            >
+              Mes Actual
+            </button>
+            <button 
+              onClick={() => setMonthOffset(o => o + 1)} 
+              className="btn-secondary px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
+            >
+              <span>Mes Siguiente</span>
+              <span>→</span>
+            </button>
+          </div>
+          {monthOffset !== 0 && (
+            <p className="text-center text-xs text-slate-400 mt-3">
+              Mostrando: {format(addWeeks(startOfMonth(today), monthOffset * 4), 'MMMM yyyy', { locale: es })}
+            </p>
+          )}
         </div>
       )}
 

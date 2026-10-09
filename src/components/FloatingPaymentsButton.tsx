@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, X, DollarSign } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
 import type { useStore } from '../store/useStore';
+import PaymentModal from './PaymentModal';
 
 export default function FloatingPaymentsButton({ store }: { store: ReturnType<typeof useStore> }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemType, setItemType] = useState<'debt' | 'expense'>('debt');
 
   const debts = store.getUserDebts().filter(d => d.totalAmount - d.paidAmount > 0);
   const expenses = store.getUserExpenses().filter(e => e.frequency === 'monthly' || e.frequency === 'weekly');
@@ -29,6 +33,39 @@ export default function FloatingPaymentsButton({ store }: { store: ReturnType<ty
       progress,
       paymentsMade: newPaymentsMade,
     });
+  };
+
+  const openPaymentModal = (item: any, type: 'debt' | 'expense') => {
+    setSelectedItem(item);
+    setItemType(type);
+    setShowPaymentModal(true);
+  };
+
+  const handlePayment = (amount: number, isFull: boolean, photo?: string) => {
+    if (!selectedItem) return;
+
+    if (itemType === 'debt') {
+      const newPaid = selectedItem.paidAmount + amount;
+      const progress = (newPaid / selectedItem.totalAmount) * 100;
+      const newPaymentsMade = (selectedItem.paymentsMade || 0) + 1;
+
+      store.updateDebt(selectedItem.id, {
+        paidAmount: newPaid,
+        progress,
+        paymentsMade: newPaymentsMade,
+      });
+    } else if (itemType === 'expense') {
+      if (isFull) {
+        store.removeExpense(selectedItem.id);
+      } else {
+        const newAmount = selectedItem.amount - amount;
+        if (newAmount <= 0) {
+          store.removeExpense(selectedItem.id);
+        } else {
+          store.updateExpense(selectedItem.id, { amount: newAmount });
+        }
+      }
+    }
   };
 
   if (debts.length === 0 && expenses.length === 0) return null;
@@ -160,16 +197,26 @@ export default function FloatingPaymentsButton({ store }: { store: ReturnType<ty
                       <DollarSign size={16} />
                       Gastos Mensuales ({expenses.length})
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {expenses.map(expense => (
-                        <div key={expense.id} className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-white">{expense.name}</p>
-                            <p className="text-xs text-slate-400">{expense.category} • {expense.frequency}</p>
+                        <div key={expense.id} className="bg-slate-700/30 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-white">{expense.name}</p>
+                              <p className="text-xs text-slate-400">{expense.category} • {expense.frequency}</p>
+                            </div>
+                            <p className="text-sm font-bold text-orange-400">
+                              {formatCurrency(expense.amount)}
+                            </p>
                           </div>
-                          <p className="text-sm font-bold text-orange-400">
-                            {formatCurrency(expense.amount)}
-                          </p>
+                          
+                          {/* Payment Button */}
+                          <button
+                            onClick={() => openPaymentModal(expense, 'expense')}
+                            className="w-full bg-orange-500/20 border border-orange-500/30 px-3 py-2 rounded-lg text-orange-300 text-xs hover:bg-orange-500/30 transition"
+                          >
+                            Pagar Gasto
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -180,6 +227,23 @@ export default function FloatingPaymentsButton({ store }: { store: ReturnType<ty
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedItem && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedItem(null);
+          }}
+          title={itemType === 'debt' ? 'Pagar Deuda' : 'Pagar Gasto'}
+          itemName={selectedItem.name}
+          totalAmount={itemType === 'debt' ? selectedItem.totalAmount : selectedItem.amount}
+          paidAmount={itemType === 'debt' ? selectedItem.paidAmount : 0}
+          onPayment={handlePayment}
+          type={itemType}
+        />
+      )}
     </>
   );
 }
