@@ -6,11 +6,16 @@ import { formatCurrency, generateId, calculateBonuses, calculateDiscounts, calcu
 import { shareAsImageWhatsApp } from '../utils/shareImage';
 import type { useStore } from '../store/useStore';
 import type { Income, Expense, Debt } from '../types';
+import PaymentModal from './PaymentModal';
 
 export default function Balance({ store }: { store: ReturnType<typeof useStore> }) {
   const [showIncomeForm, setShowIncomeForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showDebtForm, setShowDebtForm] = useState(false);
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemType, setItemType] = useState<'expense' | 'debt'>('expense');
 
   const [incomeName, setIncomeName] = useState('');
   const [incomeAmount, setIncomeAmount] = useState('');
@@ -70,6 +75,40 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
     if (!debtName) return;
     store.addDebt({ name: debtName, totalAmount: parseFloat(debtTotal) || 0, monthlyPayment: parseFloat(debtMonthly) || 0, type: debtType, frequency: 'monthly', paidAmount: 0, progress: 0, paymentsMade: 0 });
     setDebtName(''); setDebtTotal(''); setDebtMonthly(''); setShowDebtForm(false);
+  };
+
+  const openPaymentModal = (item: any, type: 'expense' | 'debt') => {
+    setSelectedItem(item);
+    setItemType(type);
+    setShowPaymentModal(true);
+  };
+
+  const handlePayment = (amount: number, isFull: boolean, photo?: string) => {
+    if (!selectedItem) return;
+
+    if (itemType === 'expense') {
+      // Para gastos, actualizar paidAmount y originalAmount
+      const currentPaid = selectedItem.paidAmount || 0;
+      const originalAmount = selectedItem.originalAmount || selectedItem.amount;
+      const newPaid = currentPaid + amount;
+      
+      store.updateExpense(selectedItem.id, {
+        paidAmount: newPaid,
+        originalAmount: originalAmount,
+        amount: isFull ? 0 : Math.max(0, selectedItem.amount - amount),
+      });
+    } else if (itemType === 'debt') {
+      // Para deudas, actualizar paidAmount y progress
+      const newPaid = selectedItem.paidAmount + amount;
+      const progress = (newPaid / selectedItem.totalAmount) * 100;
+      const newPaymentsMade = (selectedItem.paymentsMade || 0) + 1;
+
+      store.updateDebt(selectedItem.id, {
+        paidAmount: newPaid,
+        progress,
+        paymentsMade: newPaymentsMade,
+      });
+    }
   };
 
   const shareWhatsApp = async (type: string, itemData: any) => {
@@ -200,18 +239,66 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
           )}
         </AnimatePresence>
         <div className="space-y-2">
-          {expenses.map(exp => (
-            <div key={exp.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg px-3 md:px-4 py-2">
-              <div>
-                <p className="text-sm text-white">{categoryLabels[exp.category] || exp.name}</p>
-                <p className="text-xs text-slate-400">{formatCurrency(exp.amount)} • {exp.frequency}</p>
+          {expenses.map(exp => {
+            const originalAmount = exp.originalAmount || exp.amount;
+            const paidAmount = exp.paidAmount || 0;
+            const paidPercentage = originalAmount > 0 ? (paidAmount / originalAmount) * 100 : 0;
+            const isFullyPaid = paidPercentage >= 100;
+
+            return (
+              <div key={exp.id} className="bg-slate-700/30 rounded-lg p-3 md:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="text-sm text-white">{categoryLabels[exp.category] || exp.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {isFullyPaid ? (
+                        <span className="text-emerald-400 font-semibold">✓ Pagado completamente</span>
+                      ) : (
+                        <>
+                          Restante: {formatCurrency(exp.amount)} • {exp.frequency}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!isFullyPaid && (
+                      <button onClick={() => openPaymentModal(exp, 'expense')} className="bg-orange-500/20 border border-orange-500/30 px-2 py-1 rounded text-orange-300 text-xs">Pagar</button>
+                    )}
+                    <button onClick={() => store.removeExpense(exp.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
+                    <button onClick={() => shareWhatsApp('Gasto', exp)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                  </div>
+                </div>
+                
+                {/* Barra de progreso de pago */}
+                {originalAmount > 0 && (
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-slate-400 mb-1">
+                      <span>Pagado: {formatCurrency(paidAmount)}</span>
+                      <span className={paidPercentage === 100 ? 'text-emerald-400 font-semibold' : ''}>
+                        {paidPercentage.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-600 rounded-full h-2">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${paidPercentage}%` }}
+                        className={`h-2 rounded-full transition-all ${
+                          paidPercentage === 100 
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
+                            : 'bg-gradient-to-r from-orange-500 to-orange-400'
+                        }`}
+                      />
+                    </div>
+                    {paidAmount > 0 && !isFullyPaid && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Original: {formatCurrency(originalAmount)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => store.removeExpense(exp.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                <button onClick={() => shareWhatsApp('Gasto', exp)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {expenses.length === 0 && <p className="text-slate-500 text-sm text-center py-2">Sin gastos registrados</p>}
         </div>
       </div>
@@ -240,30 +327,64 @@ export default function Balance({ store }: { store: ReturnType<typeof useStore> 
           )}
         </AnimatePresence>
         <div className="space-y-3">
-          {debts.map(debt => (
-            <div key={debt.id} className="bg-slate-700/30 rounded-lg p-3 md:p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-sm font-medium text-white">{debt.name}</p>
-                  <p className="text-xs text-slate-400">{debt.type} • {formatCurrency(debt.monthlyPayment)}/mes</p>
+          {debts.map(debt => {
+            const isFullyPaid = debt.progress >= 100;
+
+            return (
+              <div key={debt.id} className="bg-slate-700/30 rounded-lg p-3 md:p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">{debt.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {debt.type} • {formatCurrency(debt.monthlyPayment)}/mes
+                      {debt.paymentsMade > 0 && (
+                        <span className="ml-2 text-blue-400">
+                          • {debt.paymentsMade} pagos realizados
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!isFullyPaid && (
+                      <button onClick={() => openPaymentModal(debt, 'debt')} className="bg-blue-500/20 border border-blue-500/30 px-2 py-1 rounded text-blue-300 text-xs">Pagar</button>
+                    )}
+                    <button onClick={() => store.removeDebt(debt.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
+                    <button onClick={() => shareWhatsApp('Deuda', debt)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => store.removeDebt(debt.id)} className="text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                  <button onClick={() => shareWhatsApp('Deuda', debt)} className="text-green-400 hover:text-green-300"><Share2 size={14} /></button>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-slate-600 rounded-full h-2">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${debt.progress}%` }} className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full" />
+                  </div>
+                  <span className="text-xs text-slate-400">{debt.progress.toFixed(0)}%</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500 mt-1">
+                  <span>Pagado: {formatCurrency(debt.paidAmount)}</span>
+                  <span>Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-slate-600 rounded-full h-2">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${debt.progress}%` }} className="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full" />
-                </div>
-                <span className="text-xs text-slate-400">{debt.progress.toFixed(0)}%</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</p>
-            </div>
-          ))}
+            );
+          })}
           {debts.length === 0 && <p className="text-slate-500 text-sm text-center py-2">Sin deudas registradas</p>}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedItem && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedItem(null);
+          }}
+          title={itemType === 'expense' ? 'Pagar Gasto' : 'Pagar Deuda'}
+          itemName={selectedItem.name}
+          totalAmount={itemType === 'expense' ? (selectedItem.originalAmount || selectedItem.amount) : selectedItem.totalAmount}
+          paidAmount={itemType === 'expense' ? (selectedItem.paidAmount || 0) : selectedItem.paidAmount}
+          onPayment={handlePayment}
+          type={itemType}
+        />
+      )}
     </div>
   );
 }
