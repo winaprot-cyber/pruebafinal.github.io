@@ -105,7 +105,7 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
             Meses Anteriores
           </button>
         </div>
-      </div>
+        </div>
       </div>
 
       {/* Selector de reportes históricos */}

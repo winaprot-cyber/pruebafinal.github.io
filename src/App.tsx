@@ -9,6 +9,8 @@ import Balance from './components/Balance';
 import Decimo from './components/Decimo';
 import UserMenu from './components/UserMenu';
 import AdminPanel from './components/AdminPanel';
+import FloatingPaymentsButton from './components/FloatingPaymentsButton';
+import AlarmButton from './components/AlarmButton';
 import { Home, History, FileText, CreditCard, Wallet, PieChart, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -130,6 +132,10 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Floating Buttons */}
+      <FloatingPaymentsButton store={store} />
+      <AlarmButton store={store} />
 
       {/* Footer */}
       <footer className="bg-slate-800/50 border-t border-slate-700/50 py-4 mt-8">

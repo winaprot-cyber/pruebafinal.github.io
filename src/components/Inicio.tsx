@@ -161,9 +161,9 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
       </div>
 
       {/* Week Navigation */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
+      <div className="card-solid rounded-xl p-3 md:p-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => setWeekOffset(o => o - 1)} className="flex items-center gap-1 px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50 transition">
+          <button onClick={() => setWeekOffset(o => o - 1)} className="btn-secondary flex items-center gap-1 px-3 py-2 rounded-lg text-sm">
             <ChevronLeft size={16} />
             <span className="hidden sm:inline">Anterior</span>
           </button>
@@ -171,17 +171,17 @@ export default function Inicio({ store }: { store: ReturnType<typeof useStore> }
             <p className="text-sm md:text-base font-semibold text-white">
               {format(currentWeekStart, 'dd MMM', { locale: es })} - {format(currentWeekEnd, 'dd MMM yyyy', { locale: es })}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-300">
               {weekOffset === 0 ? 'Semana Actual' : weekOffset < 0 ? `${Math.abs(weekOffset)} semana(s) atrás` : `${weekOffset} semana(s) adelante`}
             </p>
           </div>
-          <button onClick={() => setWeekOffset(o => o + 1)} className="flex items-center gap-1 px-3 py-2 bg-slate-700/50 rounded-lg text-sm hover:bg-slate-600/50 transition">
+          <button onClick={() => setWeekOffset(o => o + 1)} className="btn-secondary flex items-center gap-1 px-3 py-2 rounded-lg text-sm">
             <span className="hidden sm:inline">Siguiente</span>
             <ChevronRight size={16} />
           </button>
         </div>
         {weekOffset !== 0 && (
-          <button onClick={() => setWeekOffset(0)} className="w-full mt-2 text-xs text-blue-400 hover:text-blue-300">
+          <button onClick={() => setWeekOffset(0)} className="w-full mt-2 text-xs text-blue-400 hover:text-blue-300 font-medium">
             Volver a semana actual
           </button>
         )}

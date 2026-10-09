@@ -10,6 +10,8 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
   const [showConfig, setShowConfig] = useState(false);
   const [showWeekSelector, setShowWeekSelector] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const [showBonusesDetail, setShowBonusesDetail] = useState(false);
+  const [showDiscountsDetail, setShowDiscountsDetail] = useState(false);
   const [baseSalary, setBaseSalary] = useState(store.getSalaryConfig().baseSalary.toString());
   const [biweeklyPayment, setBiweeklyPayment] = useState(store.getSalaryConfig().biweeklyPayment.toString());
   const [overtimeRate50, setOvertimeRate50] = useState(store.getSalaryConfig().overtimeRate50.toString());
@@ -305,9 +307,36 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
               <span className="text-slate-200 font-medium">Horas Extra 100% ({totalHours100.toFixed(1)}h)</span>
               <span className="text-red-400 font-bold">{formatCurrency(totalOvertimePayment.payment100)}</span>
             </div>
-            <div className="flex justify-between text-sm py-2 border-b border-slate-700/50">
-              <span className="text-slate-200 font-medium">Bonos Activos</span>
-              <span className="text-emerald-400 font-bold">+{formatCurrency(totalBonuses)}</span>
+            <div className="py-2 border-b border-slate-700/50">
+              <button 
+                onClick={() => setShowBonusesDetail(!showBonusesDetail)}
+                className="w-full flex justify-between items-center text-sm hover:bg-slate-700/30 px-2 py-1 rounded transition-colors"
+              >
+                <span className="text-slate-200 font-medium flex items-center gap-1">
+                  Bonos Activos
+                  <ChevronDown size={14} className={`transition-transform ${showBonusesDetail ? 'rotate-180' : ''}`} />
+                </span>
+                <span className="text-emerald-400 font-bold">+{formatCurrency(totalBonuses)}</span>
+              </button>
+              <AnimatePresence>
+                {showBonusesDetail && bonuses.filter(b => b.active && !b.isSpecial).length > 0 && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden mt-2 ml-4 space-y-1"
+                  >
+                    {bonuses.filter(b => b.active && !b.isSpecial).map(bonus => (
+                      <div key={bonus.id} className="flex justify-between text-xs bg-emerald-500/10 rounded px-2 py-1">
+                        <span className="text-slate-300">{bonus.name}</span>
+                        <span className="text-emerald-400">
+                          {bonus.basedOnSalary ? `${bonus.percentage}% = ${formatCurrency(baseIngreso * bonus.percentage / 100)}` : formatCurrency(bonus.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             {fondosReservaActive && (
               <div className="flex justify-between text-sm py-2 border-b border-slate-700/50">
@@ -317,9 +346,36 @@ export default function Pagos({ store }: { store: ReturnType<typeof useStore> })
             )}
             <div className="pt-2">
               <p className="text-xs text-slate-400 font-semibold mb-2">DESCUENTOS</p>
-              <div className="flex justify-between text-sm py-2 border-b border-slate-700/50">
-                <span className="text-slate-200 font-medium">Descuentos</span>
-                <span className="text-red-400 font-bold">-{formatCurrency(totalDiscounts)}</span>
+              <div className="py-2 border-b border-slate-700/50">
+                <button 
+                  onClick={() => setShowDiscountsDetail(!showDiscountsDetail)}
+                  className="w-full flex justify-between items-center text-sm hover:bg-slate-700/30 px-2 py-1 rounded transition-colors"
+                >
+                  <span className="text-slate-200 font-medium flex items-center gap-1">
+                    Descuentos
+                    <ChevronDown size={14} className={`transition-transform ${showDiscountsDetail ? 'rotate-180' : ''}`} />
+                  </span>
+                  <span className="text-red-400 font-bold">-{formatCurrency(totalDiscounts)}</span>
+                </button>
+                <AnimatePresence>
+                  {showDiscountsDetail && discounts.filter(d => d.active && !d.isSpecial).length > 0 && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden mt-2 ml-4 space-y-1"
+                    >
+                      {discounts.filter(d => d.active && !d.isSpecial).map(discount => (
+                        <div key={discount.id} className="flex justify-between text-xs bg-red-500/10 rounded px-2 py-1">
+                          <span className="text-slate-300">{discount.name}</span>
+                          <span className="text-red-400">
+                            {discount.basedOnSalary ? `${discount.percentage}% = ${formatCurrency(baseIngreso * discount.percentage / 100)}` : formatCurrency(discount.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               {iessAporteActive && (
                 <div className="flex justify-between text-sm py-2 border-b border-slate-700/50">
