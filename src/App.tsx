@@ -7,21 +7,22 @@ import Pagos from './components/Pagos';
 import Finanzas from './components/Finanzas';
 import Balance from './components/Balance';
 import Decimo from './components/Decimo';
-import Admin from './components/Admin';
-import { Home, History, FileText, CreditCard, Wallet, PieChart, Calendar, LogOut, Users } from 'lucide-react';
+import UserMenu from './components/UserMenu';
+import AdminPanel from './components/AdminPanel';
+import { Home, History, FileText, CreditCard, Wallet, PieChart, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function App() {
   const store = useStore();
   const [activeTab, setActiveTab] = useState('inicio');
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   if (!store.getCurrentUser()) {
     return <AuthScreen store={store} />;
   }
 
   const user = store.getCurrentUser()!;
-  const isAdmin = store.isAdmin();
 
   const tabs = [
     { id: 'inicio', label: 'Inicio', icon: Home },
@@ -33,11 +34,11 @@ export default function App() {
     { id: 'decimo', label: 'Décimo', icon: Calendar },
   ];
 
-  if (isAdmin) {
-    tabs.push({ id: 'admin', label: 'Admin', icon: Users });
-  }
-
   const renderContent = () => {
+    if (showAdminPanel) {
+      return <AdminPanel store={store} onBack={() => setShowAdminPanel(false)} />;
+    }
+
     switch (activeTab) {
       case 'inicio':
         return <Inicio store={store} />;
@@ -53,8 +54,6 @@ export default function App() {
         return <Balance store={store} />;
       case 'decimo':
         return <Decimo store={store} />;
-      case 'admin':
-        return isAdmin ? <Admin store={store} /> : null;
       default:
         return null;
     }
@@ -87,13 +86,7 @@ export default function App() {
                 )}
               </p>
             </div>
-            <button
-              onClick={store.logout}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2 rounded-lg transition-all hover:scale-105"
-              title="Cerrar sesión"
-            >
-              <LogOut size={20} />
-            </button>
+            <UserMenu store={store} onOpenAdmin={() => setShowAdminPanel(true)} />
           </div>
         </div>
       </header>

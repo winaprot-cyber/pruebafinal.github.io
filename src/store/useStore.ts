@@ -583,6 +583,16 @@ export function useStore() {
     return data.decimoEntries.filter(d => d.userId === data.currentUser!.id);
   };
 
+  // Exportar todos los datos
+  const exportAllData = (): AppData => {
+    return data;
+  };
+
+  // Importar todos los datos
+  const importAllData = (importedData: AppData) => {
+    setData(importedData);
+  };
+
   return {
     data,
     register,
@@ -629,5 +639,7 @@ export function useStore() {
     getUserExpenses,
     getUserDebts,
     getUserDecimoEntries,
+    exportAllData,
+    importAllData,
   };
 }
