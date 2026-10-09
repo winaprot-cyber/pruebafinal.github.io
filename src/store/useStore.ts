@@ -230,6 +230,40 @@ export function useStore() {
     }));
   };
 
+  const addLoanPayment = (discountId: string, payment: any) => {
+    setData(prev => ({
+      ...prev,
+      discounts: prev.discounts.map(d => {
+        if (d.id === discountId) {
+          const payments = d.loanPayments || [];
+          return {
+            ...d,
+            loanPayments: [...payments, payment],
+            paymentsMade: (d.paymentsMade || 0) + 1,
+          };
+        }
+        return d;
+      }),
+    }));
+  };
+
+  const removeLoanPayment = (discountId: string, paymentId: string) => {
+    setData(prev => ({
+      ...prev,
+      discounts: prev.discounts.map(d => {
+        if (d.id === discountId) {
+          const payments = (d.loanPayments || []).filter(p => p.id !== paymentId);
+          return {
+            ...d,
+            loanPayments: payments,
+            paymentsMade: payments.length,
+          };
+        }
+        return d;
+      }),
+    }));
+  };
+
   // Incomes
   const addIncome = (income: Omit<Income, 'id' | 'userId'>) => {
     if (!data.currentUser) return;
@@ -315,12 +349,17 @@ export function useStore() {
   };
 
   // Decimo Entries
-  const addDecimoEntry = (entry: Omit<DecimoEntry, 'id' | 'userId'>) => {
+  const addDecimoEntry = (entry: Partial<DecimoEntry> & { month: number; year: number; baseSalary: number; total: number }) => {
     if (!data.currentUser) return;
     const newEntry: DecimoEntry = {
-      ...entry,
-      id: generateId(),
+      id: entry.id || generateId(),
       userId: data.currentUser.id,
+      month: entry.month,
+      year: entry.year,
+      baseSalary: entry.baseSalary,
+      overtimeHours50: entry.overtimeHours50 || 0,
+      overtimeHours100: entry.overtimeHours100 || 0,
+      total: entry.total,
     };
     setData(prev => ({
       ...prev,
@@ -513,6 +552,8 @@ export function useStore() {
     addDiscount,
     updateDiscount,
     removeDiscount,
+    addLoanPayment,
+    removeLoanPayment,
     addIncome,
     updateIncome,
     removeIncome,

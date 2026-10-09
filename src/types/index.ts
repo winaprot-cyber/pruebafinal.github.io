@@ -111,7 +111,7 @@ export interface Debt {
 
 export interface DecimoEntry {
   id: string;
-  userId: string;
+  userId?: string;
   month: number;
   year: number;
   baseSalary: number;

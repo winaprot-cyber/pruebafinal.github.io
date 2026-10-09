@@ -1,5 +1,13 @@
 import { useStore } from './store/useStore';
 import AuthScreen from './components/AuthScreen';
+import Inicio from './components/Inicio';
+import Historial from './components/Historial';
+import Reporte from './components/Reporte';
+import Pagos from './components/Pagos';
+import Finanzas from './components/Finanzas';
+import Balance from './components/Balance';
+import Decimo from './components/Decimo';
+import Admin from './components/Admin';
 import { Home, History, FileText, CreditCard, Wallet, PieChart, Calendar, LogOut, Users } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,21 +40,21 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'inicio':
-        return <div className="text-white">Contenido de Inicio</div>;
+        return <Inicio store={store} />;
       case 'historial':
-        return <div className="text-white">Contenido de Historial</div>;
+        return <Historial store={store} />;
       case 'reporte':
-        return <div className="text-white">Contenido de Reporte</div>;
+        return <Reporte store={store} />;
       case 'pagos':
-        return <div className="text-white">Contenido de Pagos</div>;
+        return <Pagos store={store} />;
       case 'finanzas':
-        return <FinanzasTab store={store} />;
+        return <Finanzas store={store} />;
       case 'balance':
-        return <div className="text-white">Contenido de Balance</div>;
+        return <Balance store={store} />;
       case 'decimo':
-        return <div className="text-white">Contenido de Décimo</div>;
+        return <Decimo store={store} />;
       case 'admin':
-        return isAdmin ? <AdminPanel store={store} /> : null;
+        return isAdmin ? <Admin store={store} /> : null;
       default:
         return null;
     }
@@ -121,253 +129,6 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
-    </div>
-  );
-}
-
-// Componente temporal de Finanzas con botones funcionales
-function FinanzasTab({ store }: { store: ReturnType<typeof useStore> }) {
-  const [showBonusForm, setShowBonusForm] = useState(false);
-  const [showDiscountForm, setShowDiscountForm] = useState(false);
-  const [bonusName, setBonusName] = useState('');
-  const [bonusAmount, setBonusAmount] = useState('');
-  const [discountName, setDiscountName] = useState('');
-  const [discountAmount, setDiscountAmount] = useState('');
-
-  const handleSaveBonus = () => {
-    if (!bonusName || !bonusAmount) return;
-    store.addBonus({
-      name: bonusName,
-      amount: parseFloat(bonusAmount),
-      active: true,
-      basedOnSalary: false,
-      percentage: 0,
-      type: 'bonus',
-    });
-    setBonusName('');
-    setBonusAmount('');
-    setShowBonusForm(false);
-  };
-
-  const handleSaveDiscount = () => {
-    if (!discountName || !discountAmount) return;
-    store.addDiscount({
-      name: discountName,
-      amount: parseFloat(discountAmount),
-      active: true,
-      basedOnSalary: false,
-      percentage: 0,
-      type: 'discount',
-    });
-    setDiscountName('');
-    setDiscountAmount('');
-    setShowDiscountForm(false);
-  };
-
-  const bonuses = store.getUserBonuses();
-  const discounts = store.getUserDiscounts();
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Finanzas</h2>
-
-      {/* Bonos */}
-      <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-emerald-400">Bonos</h3>
-          <button
-            onClick={() => setShowBonusForm(!showBonusForm)}
-            className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-4 py-2 rounded-lg transition-colors"
-          >
-            + Agregar Bono
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showBonusForm && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="bg-slate-700/30 rounded-lg p-4 mb-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Nombre del bono"
-                  value={bonusName}
-                  onChange={(e) => setBonusName(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                />
-                <input
-                  type="number"
-                  placeholder="Monto"
-                  value={bonusAmount}
-                  onChange={(e) => setBonusAmount(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveBonus}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowBonusForm(false);
-                      setBonusName('');
-                      setBonusAmount('');
-                    }}
-                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="space-y-2">
-          {bonuses.map(bonus => (
-            <div key={bonus.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg p-3">
-              <div>
-                <p className="text-white font-medium">{bonus.name}</p>
-                <p className="text-sm text-slate-400">${bonus.amount.toFixed(2)}</p>
-              </div>
-              <button
-                onClick={() => store.removeBonus(bonus.id)}
-                className="text-red-400 hover:text-red-300"
-              >
-                Eliminar
-              </button>
-            </div>
-          ))}
-          {bonuses.length === 0 && (
-            <p className="text-slate-500 text-center py-4">No hay bonos registrados</p>
-          )}
-        </div>
-      </div>
-
-      {/* Descuentos */}
-      <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-red-400">Descuentos</h3>
-          <button
-            onClick={() => setShowDiscountForm(!showDiscountForm)}
-            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-colors"
-          >
-            + Agregar Descuento
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showDiscountForm && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="bg-slate-700/30 rounded-lg p-4 mb-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Nombre del descuento"
-                  value={discountName}
-                  onChange={(e) => setDiscountName(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                />
-                <input
-                  type="number"
-                  placeholder="Monto"
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveDiscount}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDiscountForm(false);
-                      setDiscountName('');
-                      setDiscountAmount('');
-                    }}
-                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="space-y-2">
-          {discounts.map(discount => (
-            <div key={discount.id} className="flex items-center justify-between bg-slate-700/30 rounded-lg p-3">
-              <div>
-                <p className="text-white font-medium">{discount.name}</p>
-                <p className="text-sm text-slate-400">${discount.amount.toFixed(2)}</p>
-              </div>
-              <button
-                onClick={() => store.removeDiscount(discount.id)}
-                className="text-red-400 hover:text-red-300"
-              >
-                Eliminar
-              </button>
-            </div>
-          ))}
-          {discounts.length === 0 && (
-            <p className="text-slate-500 text-center py-4">No hay descuentos registrados</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Panel de Administración
-function AdminPanel({ store }: { store: ReturnType<typeof useStore> }) {
-  const users = store.getAllUsers();
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Panel de Administración</h2>
-
-      <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-blue-400 mb-4">Usuarios Registrados</h3>
-        <div className="space-y-3">
-          {users.map(user => (
-            <div key={user.id} className="bg-slate-700/30 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-white font-medium">{user.name}</p>
-                  <p className="text-sm text-slate-400">@{user.username}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs ${
-                  user.role === 'admin' 
-                    ? 'bg-purple-500/20 text-purple-400' 
-                    : 'bg-blue-500/20 text-blue-400'
-                }`}>
-                  {user.role === 'admin' ? 'Administrador' : 'Usuario'}
-                </span>
-              </div>
-              {user.email && (
-                <p className="text-xs text-slate-500">{user.email}</p>
-              )}
-              <p className="text-xs text-slate-500 mt-1">
-                Registrado: {new Date(user.createdAt).toLocaleDateString('es-ES')}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
