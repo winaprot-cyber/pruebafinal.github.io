@@ -81,27 +81,27 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
-          <p className="text-xs text-slate-400">Total Horas Mes</p>
-          <p className="text-xl md:text-2xl font-bold text-white">{monthlyHours.toFixed(1)}h</p>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card-elevated rounded-xl p-3 md:p-4">
+          <p className="text-xs text-slate-300 font-medium">Total Horas Mes</p>
+          <p className="text-xl md:text-2xl font-bold text-white mt-1">{monthlyHours.toFixed(1)}h</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
-          <p className="text-xs text-slate-400">Horas Extra Mes</p>
-          <p className="text-xl md:text-2xl font-bold text-yellow-400">{monthlyOvertime.toFixed(1)}h</p>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="card-elevated rounded-xl p-3 md:p-4">
+          <p className="text-xs text-slate-300 font-medium">Horas Extra Mes</p>
+          <p className="text-xl md:text-2xl font-bold text-yellow-400 mt-1">{monthlyOvertime.toFixed(1)}h</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
-          <p className="text-xs text-slate-400">Deudas Pendientes</p>
-          <p className="text-xl md:text-2xl font-bold text-red-400">{formatCurrency(totalDebts)}</p>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="card-elevated rounded-xl p-3 md:p-4">
+          <p className="text-xs text-slate-300 font-medium">Deudas Pendientes</p>
+          <p className="text-xl md:text-2xl font-bold text-red-400 mt-1">{formatCurrency(totalDebts)}</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 md:p-4">
-          <p className="text-xs text-slate-400">Pago Mensual Deudas</p>
-          <p className="text-xl md:text-2xl font-bold text-orange-400">{formatCurrency(monthlyDebtPayments)}</p>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="card-elevated rounded-xl p-3 md:p-4">
+          <p className="text-xs text-slate-300 font-medium">Pago Mensual Deudas</p>
+          <p className="text-xl md:text-2xl font-bold text-orange-400 mt-1">{formatCurrency(monthlyDebtPayments)}</p>
         </motion.div>
       </div>
 
       {period === 'weekly' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold mb-4">Balance Semanal - {format(selectedMonth, 'MMMM yyyy', { locale: es })}</h3>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-solid rounded-xl p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold mb-4 text-white">Balance Semanal - {format(selectedMonth, 'MMMM yyyy', { locale: es })}</h3>
           <div className="h-56 md:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
@@ -120,8 +120,8 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
       )}
 
       {period === 'monthly' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold mb-4">Resumen Mensual</h3>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-solid rounded-xl p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold mb-4 text-white">Resumen Mensual</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="h-56 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -149,8 +149,8 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
       )}
 
       {period === 'quarterly' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold mb-4">Resumen Trimestral</h3>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-solid rounded-xl p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold mb-4 text-white">Resumen Trimestral</h3>
           <div className="h-56 md:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={quarterlyData}>
@@ -165,28 +165,28 @@ export default function Reporte({ store }: { store: ReturnType<typeof useStore> 
         </motion.div>
       )}
 
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+      <div className="card-solid rounded-xl p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2 text-white">
           <TrendingDown size={20} className="text-red-400" />
           Gastos y Deudas Pendientes
         </h3>
         <div className="space-y-3">
           {store.getUserDebts().map(debt => (
-            <div key={debt.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3 gap-2">
+            <div key={debt.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-700/80 rounded-lg px-4 py-3 gap-2 border border-slate-600/50">
               <div>
-                <p className="text-sm font-medium text-white">{debt.name}</p>
-                <p className="text-xs text-slate-400">{debt.type} - {formatCurrency(debt.monthlyPayment)}/mes</p>
+                <p className="text-sm font-semibold text-white">{debt.name}</p>
+                <p className="text-xs text-slate-300">{debt.type} - {formatCurrency(debt.monthlyPayment)}/mes</p>
               </div>
               <div className="text-left sm:text-right">
                 <p className="text-sm font-bold text-red-400">{formatCurrency(debt.totalAmount - debt.paidAmount)}</p>
                 <div className="w-full sm:w-24 bg-slate-600 rounded-full h-1.5 mt-1">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${debt.progress}%` }} className="bg-red-500 h-1.5 rounded-full" />
                 </div>
-                <p className="text-xs text-slate-500">{debt.progress.toFixed(0)}% pagado</p>
+                <p className="text-xs text-slate-300">{debt.progress.toFixed(0)}% pagado</p>
               </div>
             </div>
           ))}
-          {store.getUserDebts().length === 0 && <p className="text-slate-500 text-sm text-center py-4">No hay deudas registradas</p>}
+          {store.getUserDebts().length === 0 && <p className="text-slate-400 text-sm text-center py-4">No hay deudas registradas</p>}
         </div>
       </div>
     </div>
